@@ -6,14 +6,14 @@ enum GamePhase { playing, won, lost }
 
 class GameConfig {
   static const Map<Difficulty, int> maxMoves = {
-    Difficulty.easy: 20,
-    Difficulty.normal: 15,
-    Difficulty.hard: 10,
+    Difficulty.easy: 6,
+    Difficulty.normal: 5,
+    Difficulty.hard: 4,
   };
   static const Map<Difficulty, int> shuffleSteps = {
-    Difficulty.easy: 8,
-    Difficulty.normal: 12,
-    Difficulty.hard: 9,
+    Difficulty.easy: 4,   // swap 4회 + 회전 1회
+    Difficulty.normal: 5,  // swap 5회 + 회전 1회
+    Difficulty.hard: 6,   // swap 6회 + 회전 1회
   };
   static const Map<Difficulty, int> hintCount = {
     Difficulty.easy: 3,
@@ -21,9 +21,9 @@ class GameConfig {
     Difficulty.hard: 1,
   };
   static const Map<Difficulty, int> timeLimitSecs = {
-    Difficulty.easy: 90,
-    Difficulty.normal: 60,
-    Difficulty.hard: 40,
+    Difficulty.easy: 120,
+    Difficulty.normal: 90,
+    Difficulty.hard: 60,
   };
 }
 

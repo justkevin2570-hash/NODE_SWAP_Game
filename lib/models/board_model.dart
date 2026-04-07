@@ -121,12 +121,26 @@ class BoardModel {
     // Step 1: 대칭 보드 생성
     BoardModel board = _generateSymmetric(type);
 
-    // Step 2: 랜덤 인접 swap으로 섞기
+    // Step 2: swap shuffleSteps회 + 회전 1회를 랜덤 위치에 섞어서 적용
+    // (회전이 포함되면 swap만으로는 풀기 어렵고, 회전을 활용해야 효율적으로 풀 수 있음)
     final random = Random();
-    final swaps = board.adjacentSwaps();
-    for (int i = 0; i < shuffleSteps; i++) {
-      final s = swaps[random.nextInt(swaps.length)];
-      board = board.swap(s.$1, s.$2, s.$3, s.$4);
+    final totalOps = shuffleSteps + 1; // swap N회 + 회전 1회
+    final rotationAt = random.nextInt(totalOps); // 회전을 넣을 위치
+    (int, int, int, int)? lastSwap;
+
+    for (int step = 0; step < totalOps; step++) {
+      if (step == rotationAt) {
+        board = board.rotate90CW();
+        lastSwap = null; // 회전 후 직전 swap 초기화
+      } else {
+        final swaps = board.adjacentSwaps();
+        final candidates = lastSwap == null
+            ? swaps
+            : swaps.where((s) => s != lastSwap).toList();
+        final s = candidates[random.nextInt(candidates.length)];
+        board = board.swap(s.$1, s.$2, s.$3, s.$4);
+        lastSwap = s;
+      }
     }
 
     // Step 3: 여전히 대칭이면 재시도

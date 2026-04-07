@@ -16,11 +16,13 @@ final swapAnimationProvider = StateProvider<(int, int, int, int)?>((_) => null);
 class GameStateNotifier extends StateNotifier<GameState> {
   final Ref ref;
   DateTime? _lastSwapTime;
+  bool _suppressWinCheck = false; // 회전 애니메이션 중 win 체크 억제
 
   GameStateNotifier(this.ref) : super(GameState.initial()) {
     // 보드 변화 감지 → 승패 판정
     ref.listen<BoardModel>(boardProvider, (_, board) {
       if (state.phase != GamePhase.playing) return;
+      if (_suppressWinCheck) return; // 회전 중이면 스킵
       if (board.checkSymmetry(state.targetSymmetry)) {
         final timeTaken =
             GameConfig.timeLimitSecs[state.difficulty]! - state.timeRemaining;
@@ -34,10 +36,6 @@ class GameStateNotifier extends StateNotifier<GameState> {
           clearSelection: true,
         );
         ref.read(soundProvider.notifier).play(SoundEvent.win);
-      } else if (state.moveCount >= state.maxMoves) {
-        ref.read(gameTimerProvider.notifier).pause();
-        state = state.copyWith(phase: GamePhase.lost, clearSelection: true);
-        ref.read(soundProvider.notifier).play(SoundEvent.lose);
       }
     });
 
@@ -98,12 +96,19 @@ class GameStateNotifier extends StateNotifier<GameState> {
       // 스왑 애니메이션 이벤트 발행
       ref.read(swapAnimationProvider.notifier).state = (r1, c1, row, col);
       ref.read(boardProvider.notifier).swap(r1, c1, row, col);
+      final newMoveCount = state.moveCount + 1;
       state = state.copyWith(
-        moveCount: state.moveCount + 1,
+        moveCount: newMoveCount,
         clearSelection: true,
       );
       _evaluateCombo();
       ref.read(soundProvider.notifier).play(SoundEvent.swap);
+      // 이동 횟수 소진 → 게임 오버 (win 판정은 boardProvider 리스너에서 먼저 처리됨)
+      if (state.phase == GamePhase.playing && newMoveCount >= state.maxMoves) {
+        ref.read(gameTimerProvider.notifier).pause();
+        state = state.copyWith(phase: GamePhase.lost, clearSelection: true);
+        ref.read(soundProvider.notifier).play(SoundEvent.lose);
+      }
     } else {
       state = state.copyWith(selectedRow: row, selectedCol: col);
       ref.read(soundProvider.notifier).play(SoundEvent.tap);
@@ -141,7 +146,29 @@ class GameStateNotifier extends StateNotifier<GameState> {
 
   void rotateBoard() {
     if (state.phase != GamePhase.playing) return;
-    ref.read(boardProvider.notifier).rotate();
+    _suppressWinCheck = true; // 회전 애니메이션 시작 — win 체크 억제
+    state = state.copyWith(clearSelection: true);
+  }
+
+  /// 회전 애니메이션 완료 후 호출 — win 체크 재개 및 판정
+  void onRotationComplete() {
+    _suppressWinCheck = false;
+    if (state.phase != GamePhase.playing) return;
+    final board = ref.read(boardProvider);
+    if (board.checkSymmetry(state.targetSymmetry)) {
+      final timeTaken =
+          GameConfig.timeLimitSecs[state.difficulty]! - state.timeRemaining;
+      final movesLeft = state.maxMoves - state.moveCount;
+      final finalBonus = movesLeft * 50;
+      ref.read(gameTimerProvider.notifier).pause();
+      state = state.copyWith(
+        phase: GamePhase.won,
+        timeTaken: timeTaken,
+        score: state.score + finalBonus,
+        clearSelection: true,
+      );
+      ref.read(soundProvider.notifier).play(SoundEvent.win);
+    }
   }
 
   void useHint() {
