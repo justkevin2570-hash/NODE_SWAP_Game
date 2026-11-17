@@ -215,7 +215,7 @@ class _DemoBoardState extends State<_DemoBoard> {
   void _next() {
     if (!mounted) return;
     setState(() {
-      _type = SymmetryType.values[_serial % 3];
+      _type = SymmetryType.values[_serial % SymmetryType.values.length];
       _board = _gen.symmetricBoard(_type);
       _serial++;
       _ids = List.generate(Board.cellCount, (i) => i + _serial * 100);

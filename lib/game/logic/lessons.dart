@@ -59,4 +59,16 @@ final lessons = <Lesson>[
       [1, 1, 0, 0, 1],
     ]),
   ),
+  Lesson(
+    title: '대각선으로 맞추기',
+    body: '대각선 점선을 접는 선이라고 생각해 보세요.\n반짝이는 두 타일을 바꾸면 ↘ 대각선(y=−x) 대칭이 완성돼요!',
+    target: SymmetryType.diagonalDown,
+    board: Board.fromRows(const [
+      [1, 0, 1, 1, 0],
+      [0, 1, 0, 1, 0],
+      [1, 0, 0, 1, 0],
+      [1, 0, 1, 1, 1],
+      [0, 1, 0, 1, 0],
+    ]),
+  ),
 ];

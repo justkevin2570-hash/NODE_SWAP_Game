@@ -170,6 +170,8 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
       SymmetryType.horizontal => (c - 2).abs().toDouble(),
       SymmetryType.vertical => (r - 2).abs().toDouble(),
       SymmetryType.point => sqrt(pow(r - 2, 2) + pow(c - 2, 2)),
+      SymmetryType.diagonalUp => (r + c - 4).abs() / sqrt2,
+      SymmetryType.diagonalDown => (r - c).abs() / sqrt2,
     };
     return Duration(milliseconds: (d * 70).round());
   }
@@ -360,6 +362,18 @@ class _AxisPainter extends CustomPainter {
               band);
         case SymmetryType.point:
           canvas.drawCircle(c, w * 0.75, band);
+        case SymmetryType.diagonalUp:
+        case SymmetryType.diagonalDown:
+          // 대각선을 따라 45° 기울인 띠
+          canvas.save();
+          canvas.translate(c.dx, c.dy);
+          canvas.rotate(type == SymmetryType.diagonalDown ? pi / 4 : -pi / 4);
+          canvas.drawRRect(
+              RRect.fromRectAndRadius(
+                  Rect.fromCenter(center: Offset.zero, width: size.width * sqrt2 - 40, height: w),
+                  const Radius.circular(24)),
+              band);
+          canvas.restore();
       }
       return;
     }
@@ -376,6 +390,23 @@ class _AxisPainter extends CustomPainter {
       case SymmetryType.vertical:
         for (double x = -6; x < size.width + 6; x += dash + gap) {
           canvas.drawLine(Offset(x, c.dy), Offset(min(x + dash, size.width + 6), c.dy), paint);
+        }
+      case SymmetryType.diagonalUp:
+      case SymmetryType.diagonalDown:
+        // y=−x(↘): 왼쪽 위 → 오른쪽 아래, y=x(↗): 왼쪽 아래 → 오른쪽 위.
+        // 보드 모서리가 둥글어서 양 끝을 조금 안쪽에서 시작한다.
+        const inset = 14.0;
+        final down = type == SymmetryType.diagonalDown;
+        final from = down ? Offset(inset, inset) : Offset(inset, size.height - inset);
+        final to = down ? Offset(size.width - inset, size.height - inset) : Offset(size.width - inset, inset);
+        final total = (to - from).distance;
+        final dir = (to - from) / total;
+        // 대시가 중심을 기준으로 대칭이 되도록 가운데 대시부터 바깥으로 그린다.
+        canvas.drawLine(c - dir * (dash / 2), c + dir * (dash / 2), paint);
+        for (double d = dash / 2 + gap; d < total / 2; d += dash + gap) {
+          final e = min(d + dash, total / 2);
+          canvas.drawLine(c + dir * d, c + dir * e, paint);
+          canvas.drawLine(c - dir * d, c - dir * e, paint);
         }
       case SymmetryType.point:
         canvas.drawCircle(c, 7, Paint()..color = Colors.white);

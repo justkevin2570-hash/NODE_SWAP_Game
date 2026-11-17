@@ -103,7 +103,7 @@ class GameSession {
 
   /// 회전하기만 하면 완성되는 상태인지.
   bool get rotateToWin =>
-      target != SymmetryType.point &&
+      target.rotated != target &&
       !board.isSymmetric(target) &&
       board.isSymmetric(target.rotated);
 

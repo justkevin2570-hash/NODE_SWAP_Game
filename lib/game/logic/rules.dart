@@ -33,13 +33,15 @@ abstract final class Rules {
 
   static PuzzleSpec rushSpec(int stage) {
     const hv = [SymmetryType.horizontal, SymmetryType.vertical];
+    const basic = [SymmetryType.horizontal, SymmetryType.vertical, SymmetryType.point];
     const all = SymmetryType.values;
     if (stage <= 2) {
       return const PuzzleSpec(scrambleSwaps: 2, slack: 1, types: hv);
     }
     if (stage <= 5) {
-      return const PuzzleSpec(scrambleSwaps: 3, slack: 1, types: all);
+      return const PuzzleSpec(scrambleSwaps: 3, slack: 1, types: basic);
     }
+    // 6 스테이지부터 대각선(y=x, y=−x) 대칭이 섞여 나온다.
     if (stage <= 9) {
       return const PuzzleSpec(scrambleSwaps: 4, slack: 1, types: all);
     }

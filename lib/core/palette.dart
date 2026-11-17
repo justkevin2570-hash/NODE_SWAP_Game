@@ -38,6 +38,8 @@ abstract final class Palette {
         SymmetryType.horizontal => (pink, pinkDeep),
         SymmetryType.vertical => (sky, skyDeep),
         SymmetryType.point => (mint, mintDeep),
+        SymmetryType.diagonalUp => (peach, peachDeep),
+        SymmetryType.diagonalDown => (lavender, lavenderDeep),
       };
 
   static const fever = [pinkDeep, peachDeep, butterDeep, mintDeep, skyDeep, lavenderDeep];

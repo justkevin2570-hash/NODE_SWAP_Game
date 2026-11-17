@@ -57,6 +57,29 @@ void main() {
       expect(Board.rotatedIndex(1), 1 * 5 + 4); // (1,4)
     });
 
+    test('대각선 대칭: y=−x 는 전치, y=x 는 반대 대각선, 회전하면 서로 바뀐다', () {
+      final down = Board.fromRows(const [
+        [1, 0, 1, 1, 0],
+        [0, 1, 0, 0, 1],
+        [1, 0, 0, 1, 0],
+        [1, 0, 1, 1, 1],
+        [0, 1, 0, 1, 0],
+      ]);
+      expect(down.isSymmetric(SymmetryType.diagonalDown), isTrue);
+      expect(down.isSymmetric(SymmetryType.diagonalUp), isFalse);
+      // 시계방향 90° 회전하면 ↘ 대칭이 ↗ 대칭이 된다
+      expect(down.rotateCW().isSymmetric(SymmetryType.diagonalUp), isTrue);
+      expect(down.rotateCW().rotateCW().isSymmetric(SymmetryType.diagonalDown), isTrue);
+      // 대각선 위 5칸은 자기 자신과 짝, 나머지 20칸은 10쌍
+      for (final t in [SymmetryType.diagonalUp, SymmetryType.diagonalDown]) {
+        expect(t.pairs.length, 10);
+        expect(t.rotated.rotated, t);
+      }
+      expect(SymmetryType.diagonalDown.partnerOf(1), 5); // (0,1) ↔ (1,0)
+      expect(SymmetryType.diagonalUp.partnerOf(0), 24); // (0,0) ↔ (4,4)
+      expect(SymmetryType.diagonalUp.partnerOf(4), 4); // (0,4) 는 ↗ 대각선 위
+    });
+
     test('인접 쌍은 40개', () {
       expect(Board.adjacentPairs.length, 40);
       for (final (a, c) in Board.adjacentPairs) {
@@ -127,6 +150,14 @@ void main() {
   });
 
   group('Rules', () {
+    test('대각선 대칭은 6스테이지부터 나온다', () {
+      for (int stage = 1; stage <= 5; stage++) {
+        expect(Rules.rushSpec(stage).types.any((t) => t.isDiagonal), isFalse);
+      }
+      expect(Rules.rushSpec(6).types, containsAll([SymmetryType.diagonalUp, SymmetryType.diagonalDown]));
+      expect(Rules.classicSpec(Difficulty.easy).types.length, 5);
+    });
+
     test('콤보 배율은 최대 3배, 피버는 2배', () {
       expect(Rules.comboMultiplier(1), 1.0);
       expect(Rules.comboMultiplier(5), 2.0);
@@ -150,5 +181,8 @@ void main() {
     expect(s2.needsRotation, isTrue);
     final s3 = Solver(lessons[2].target).solve(lessons[2].board)!;
     expect(s3.moveCount, 1);
+    final s4 = Solver(lessons[3].target).solve(lessons[3].board)!;
+    expect(s4.moveCount, 1);
+    expect(s4.needsRotation, isFalse);
   });
 }

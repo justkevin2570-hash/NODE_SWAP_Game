@@ -261,6 +261,14 @@ class _SymIconPainter extends CustomPainter {
         canvas.drawRRect(sq(0.5, 0.5), fill);
         canvas.drawRRect(sq(6.5, 6.5), fill);
         canvas.drawCircle(Offset(5 * u, 5 * u), 1.3 * u, Paint()..color = Palette.ink.withValues(alpha: 0.6));
+      case SymmetryType.diagonalUp: // ↗ 선을 사이에 두고 왼쪽 위 ↔ 오른쪽 아래
+        canvas.drawRRect(sq(0.5, 0.5), fill);
+        canvas.drawRRect(sq(6.5, 6.5), fill);
+        canvas.drawLine(Offset(0, 10 * u), Offset(10 * u, 0), line);
+      case SymmetryType.diagonalDown: // ↘ 선을 사이에 두고 오른쪽 위 ↔ 왼쪽 아래
+        canvas.drawRRect(sq(6.5, 0.5), fill);
+        canvas.drawRRect(sq(0.5, 6.5), fill);
+        canvas.drawLine(Offset.zero, Offset(10 * u, 10 * u), line);
     }
   }
 
