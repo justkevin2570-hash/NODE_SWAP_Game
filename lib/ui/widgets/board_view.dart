@@ -89,6 +89,16 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
       }
       _seenRotations = widget.rotations;
     }
+    // 새 퍼즐(타일 id 가 바뀜)이면 이전 타일들의 연출 기록을 비워서 계속 쌓이지 않게 한다.
+    if (!identical(widget.tileIds, old.tileIds)) {
+      final current = widget.tileIds.toSet();
+      if (!current.containsAll(old.tileIds)) {
+        _seenIds.removeWhere((id) => !current.contains(id));
+        _bump.removeWhere((id, _) => !current.contains(id));
+        _pulse.removeWhere((id, _) => !current.contains(id));
+        _nudge.removeWhere((id, _) => !current.contains(id));
+      }
+    }
     // 위치가 바뀐 타일은 말랑하게 찌그러뜨린다.
     if (!_instantLayout) {
       final oldPos = {for (int i = 0; i < 25; i++) old.tileIds[i]: i};
@@ -217,7 +227,16 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
     });
   }
 
+  /// 테스트용: 보드가 몇 번 빌드됐는지.
+  @visibleForTesting
+  static int debugBuildCount = 0;
+
+  /// 테스트용: 타일별 연출 기록의 크기 (퍼즐이 바뀌어도 25개를 넘지 않아야 한다).
+  @visibleForTesting
+  int get debugTrackedTiles => _seenIds.length;
+
   Widget _buildBoard(BuildContext context) {
+    debugBuildCount++;
     final (light, deep) = Palette.forSymmetry(widget.target);
     final cell = _cell;
     final positionDuration = _instantLayout ? Duration.zero : const Duration(milliseconds: 210);

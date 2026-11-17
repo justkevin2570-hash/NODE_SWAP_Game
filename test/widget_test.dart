@@ -206,4 +206,33 @@ void main() {
     expect(find.text('다음 퍼즐'), findsOneWidget);
     await _cleanup(tester);
   });
+
+  testWidgets('성능: 시간이 흘러도 보드는 다시 빌드되지 않고, 퍼즐이 바뀌어도 기록이 쌓이지 않는다', (tester) async {
+    final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+    await tester.tap(find.text('러시 시작'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 2000));
+    expect(container.read(gameProvider)!.phase, Phase.playing);
+
+    // 가만히 3초: 시간 막대만 바뀌어야 한다 (예전엔 50ms 마다 보드 전체가 다시 빌드됐다)
+    BoardViewState.debugBuildCount = 0;
+    for (int i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(BoardViewState.debugBuildCount, lessThanOrEqualTo(2));
+
+    // 퍼즐을 여러 번 바꿔도 보드가 기억하는 타일 수는 25개 이하
+    final ctrl = container.read(gameProvider.notifier);
+    for (int i = 0; i < 8; i++) {
+      ctrl.skip();
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final board = tester.state<BoardViewState>(find.byType(BoardView).last);
+    expect(board.debugTrackedTiles, lessThanOrEqualTo(25));
+
+    ctrl.quit();
+    await _cleanup(tester);
+  });
 }

@@ -208,12 +208,14 @@ class _DemoBoardState extends State<_DemoBoard> {
   @override
   void initState() {
     super.initState();
-    _next();
+    _next(first: true);
     _timer = Timer.periodic(const Duration(milliseconds: 2600), (_) => _next());
   }
 
-  void _next() {
+  void _next({bool first = false}) {
     if (!mounted) return;
+    // 게임 화면이 위에 떠 있는 동안에는 데모를 멈춘다 (뒤에서 계속 돌면 낭비).
+    if (!first && !(ModalRoute.of(context)?.isCurrent ?? true)) return;
     setState(() {
       _type = SymmetryType.values[_serial % SymmetryType.values.length];
       _board = _gen.symmetricBoard(_type);

@@ -48,9 +48,10 @@ enum Sfx {
   static Sfx match(int step) => [match0, match1, match2, match3, match4, match5, match6][step.clamp(0, 6)];
   static Sfx star(int i) => [star0, star1, star2][i.clamp(0, 2)];
 
-  /// 자주 겹쳐 울리는 소리는 플레이어를 여러 개 둔다.
+  /// 동시에 겹쳐 울릴 수 있는 수. 이 개수만큼만 플레이어를 만들어 돌려 쓴다.
   int get voices => switch (this) {
-        tap || select || swap || tick || button || match0 || match1 || match2 || match3 || match4 || match5 || match6 => 3,
+        tap || select || swap || button => 3,
+        tick || tickUrgent || error || bonus || combo => 2,
         _ => 1,
       };
 }
@@ -82,7 +83,10 @@ class AudioEngine {
   double _sfxVolume = 0.8;
   bool _haptics = true;
 
-  final Map<Sfx, AudioPool> _pools = {};
+  /// 효과음마다 미리 만들어 둔 플레이어들. 개수가 고정이라 오래 플레이해도 늘어나지 않는다.
+  /// (audioplayers 의 AudioPool 은 lowLatency 모드에서 재생이 끝난 플레이어를 돌려받지 못해
+  /// 소리를 낼 때마다 새 플레이어를 만들고 해제하지 않는다 → 점점 느려지고 음악이 끊긴다.)
+  final Map<Sfx, _Voices> _sfx = {};
   final Map<Music, AudioPlayer> _music = {};
   final Map<Music, double> _musicLevel = {};
   Music _current = Music.none;
@@ -112,11 +116,15 @@ class AudioEngine {
 
   Future<void> _loadSfx(Sfx s) async {
     try {
-      _pools[s] = await AudioPool.createFromAsset(
-        path: 'audio/sfx/${s.file}.wav',
-        maxPlayers: s.voices,
-        playerMode: kIsWeb ? PlayerMode.mediaPlayer : PlayerMode.lowLatency,
-      );
+      final players = <AudioPlayer>[];
+      for (int i = 0; i < s.voices; i++) {
+        final p = AudioPlayer(playerId: 'sfx_${s.file}_$i');
+        await p.setPlayerMode(kIsWeb ? PlayerMode.mediaPlayer : PlayerMode.lowLatency);
+        await p.setReleaseMode(ReleaseMode.stop);
+        await p.setSource(AssetSource('audio/sfx/${s.file}.wav'));
+        players.add(p);
+      }
+      _sfx[s] = _Voices(players);
     } catch (e) {
       debugPrint('sfx load failed: ${s.file} $e');
     }
@@ -158,10 +166,11 @@ class AudioEngine {
   // ── 효과음 ───────────────────────────────────────────────
   void play(Sfx s, {double volume = 1.0}) {
     if (!enabled || !_ready || !_unlocked || _sfxVolume <= 0) return;
-    final pool = _pools[s];
-    if (pool == null) return;
-    pool.start(volume: min(1.0, s.gain * volume * _sfxVolume)).catchError((_) => () async {});
+    _sfx[s]?.play(min(1.0, s.gain * volume * _sfxVolume));
   }
+
+  /// 테스트·디버그용: 지금까지 만든 효과음 플레이어 수 (항상 고정이어야 한다).
+  int get sfxPlayerCount => _sfx.values.fold(0, (n, v) => n + v.players.length);
 
   // ── 진동 ─────────────────────────────────────────────────
   void haptic(HapticKind kind) {
@@ -235,8 +244,10 @@ class AudioEngine {
 
   void dispose() {
     _fadeTimer?.cancel();
-    for (final p in _pools.values) {
-      p.dispose();
+    for (final v in _sfx.values) {
+      for (final p in v.players) {
+        p.dispose();
+      }
     }
     for (final p in _music.values) {
       p.dispose();
@@ -245,6 +256,30 @@ class AudioEngine {
 }
 
 enum HapticKind { selection, light, medium, heavy }
+
+/// 한 효과음의 플레이어 묶음. 돌아가며 재사용한다.
+class _Voices {
+  _Voices(this.players);
+
+  final List<AudioPlayer> players;
+  int _next = 0;
+
+  /// 플레이어별로 명령을 순서대로 이어 붙여서, 겹쳐 눌러도 stop/resume 이 꼬이지 않게 한다.
+  late final List<Future<void>> _chains = List.filled(players.length, Future.value());
+
+  void play(double volume) {
+    final i = _next;
+    _next = (_next + 1) % players.length;
+    final p = players[i];
+    _chains[i] = _chains[i].then((_) async {
+      try {
+        await p.stop();
+        await p.setVolume(volume);
+        await p.resume();
+      } catch (_) {}
+    });
+  }
+}
 
 final audioProvider = Provider<AudioEngine>((ref) {
   final engine = AudioEngine();

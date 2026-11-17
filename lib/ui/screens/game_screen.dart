@@ -175,9 +175,27 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 
   // ── 화면 ────────────────────────────────────────────────
+  /// 화면을 다시 그려야 하는 값들. 남은 시간처럼 50ms 마다 바뀌는 값은 빼서,
+  /// 시간이 흐를 때마다 보드·버튼 전체가 다시 빌드되지 않게 한다 (시간 막대만 따로 갱신).
+  static Object? _viewKey(GameSession? s) => s == null
+      ? null
+      : (
+          s.puzzle,
+          s.board,
+          s.tileIds,
+          s.phase,
+          s.selected,
+          s.hint,
+          s.rotations,
+          s.movesUsed,
+          s.score,
+          (s.combo, s.cleared, s.hintsLeft, s.isFever, s.won, s.puzzleSerial),
+        );
+
   @override
   Widget build(BuildContext context) {
-    final s = ref.watch(gameProvider);
+    ref.watch(gameProvider.select(_viewKey));
+    final s = ref.read(gameProvider);
     final fever = s?.isFever ?? false;
     final tint = s == null ? null : Palette.forSymmetry(s.target).$1;
 
@@ -225,15 +243,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           children: [
             _topBar(s),
             const SizedBox(height: 14),
-            KeyedSubtree(
-              key: _timerKey,
-              child: TimerBar(
-                fraction: s.timeFraction,
-                remainingMs: s.remainingMs,
-                fever: s.isFever,
-                feverFraction: s.feverMs / Rules.feverDurationMs,
-              ),
-            ),
+            KeyedSubtree(key: _timerKey, child: const _LiveTimerBar()),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -387,6 +397,26 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
         ),
       ],
+    );
+  }
+}
+
+/// 남은 시간만 구독해서 자기 자신만 다시 그리는 시간 막대.
+class _LiveTimerBar extends ConsumerWidget {
+  const _LiveTimerBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(gameProvider.select((s) => s == null
+        ? null
+        : (s.timeFraction, s.remainingMs, s.isFever, s.feverMs / Rules.feverDurationMs)));
+    if (t == null) return const SizedBox(height: 24);
+    final (fraction, remainingMs, fever, feverFraction) = t;
+    return TimerBar(
+      fraction: fraction,
+      remainingMs: remainingMs,
+      fever: fever,
+      feverFraction: feverFraction,
     );
   }
 }
