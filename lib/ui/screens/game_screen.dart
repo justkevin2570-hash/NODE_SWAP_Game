@@ -217,7 +217,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Widget _content(GameSession s) {
     final (light, deep) = Palette.forSymmetry(s.target);
     return LayoutBuilder(builder: (context, c) {
-      final boardSize = min(c.maxWidth - 28, c.maxHeight * 0.56).clamp(220.0, 460.0);
+      // c 는 좌우 패딩(16 × 2)을 빼기 전 크기다.
+      final boardSize = min(c.maxWidth - 32 - 8, c.maxHeight * 0.56).clamp(220.0, 460.0);
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
         child: Column(

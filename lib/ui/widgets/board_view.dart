@@ -63,7 +63,11 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
   Offset _dragDelta = Offset.zero;
   bool _dragUsed = false;
 
-  double get _cell => (widget.size - _padding * 2 - _gap * 4) / 5;
+  /// 실제로 그려지는 보드 크기. 부모가 [BoardView.size] 보다 좁은 공간을 주면 그 크기에 맞춘다.
+  /// (요청 크기와 실제 크기가 다르면 타일 격자와 대칭축의 중심이 어긋난다.)
+  double _size = 0;
+
+  double get _cell => (_size - _padding * 2 - _gap * 4) / 5;
 
   @override
   void initState() {
@@ -113,7 +117,7 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
 
   Offset get centerGlobal {
     final box = context.findRenderObject() as RenderBox?;
-    final c = Offset(widget.size / 2, widget.size / 2);
+    final c = Offset(_size / 2, _size / 2);
     return box?.localToGlobal(c) ?? c;
   }
 
@@ -205,6 +209,13 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      _size = [widget.size, constraints.maxWidth, constraints.maxHeight].reduce(min);
+      return _buildBoard(context);
+    });
+  }
+
+  Widget _buildBoard(BuildContext context) {
     final (light, deep) = Palette.forSymmetry(widget.target);
     final cell = _cell;
     final positionDuration = _instantLayout ? Duration.zero : const Duration(milliseconds: 210);
@@ -248,12 +259,11 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
         return Transform.translate(
           offset: Offset(shakeX, 0),
           child: Container(
-            width: widget.size,
-            height: widget.size,
+            width: _size,
+            height: _size,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(34),
-              border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
                   color: deep.withValues(alpha: 0.18 + glow * 0.4),
@@ -262,6 +272,12 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
                   offset: const Offset(0, 12),
                 ),
               ],
+            ),
+            // 테두리는 레이아웃 공간을 차지하지 않도록 전경에 그린다.
+            // (decoration 의 border 는 안쪽 영역을 줄여서 대칭축과 타일 중심이 어긋난다.)
+            foregroundDecoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(34),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: child,
           ),
@@ -295,8 +311,8 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
                 );
               },
               child: SizedBox(
-                width: widget.size,
-                height: widget.size,
+                width: _size,
+                height: _size,
                 child: AnimatedOpacity(
                   opacity: widget.hideTiles ? 0 : 1,
                   duration: const Duration(milliseconds: 200),
