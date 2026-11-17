@@ -1,11 +1,11 @@
 {
-    "name": "node_swap_game",
-    "short_name": "node_swap_game",
+    "name": "Node Swap",
+    "short_name": "Node Swap",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFF8F1",
+    "theme_color": "#FFF8F1",
+    "description": "밀고 돌려서 대칭을 완성하는 파스텔 퍼즐 러시",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

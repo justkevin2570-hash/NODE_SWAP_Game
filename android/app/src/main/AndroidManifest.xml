@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="node_swap_game"
+        android:label="Node Swap"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
