@@ -94,7 +94,7 @@ class _BubblyButtonState extends ConsumerState<BubblyButton>
       child: AnimatedBuilder(
         animation: _glow,
         builder: (context, child) => AnimatedScale(
-          scale: _down ? 0.95 : 1.0 + _glow.value * 0.03,
+          scale: _down ? 0.95 : 1.0 + _glow.value * 0.05,
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOutBack,
           child: Container(
@@ -104,12 +104,13 @@ class _BubblyButtonState extends ConsumerState<BubblyButton>
               borderRadius: BorderRadius.circular(widget.vertical ? 24 : widget.height / 2),
               boxShadow: [
                 BoxShadow(
-                  color: widget.deep.withValues(alpha: enabled ? 0.9 : 0.3),
+                  color: (enabled ? widget.deep : Color.lerp(widget.deep, Colors.white, 0.5)!).withValues(alpha: enabled ? 0.9 : 0.6),
                   offset: Offset(0, depth),
                 ),
                 BoxShadow(
-                  color: widget.deep.withValues(alpha: 0.25 + _glow.value * 0.35),
-                  blurRadius: 16 + _glow.value * 18,
+                  color: widget.deep.withValues(alpha: 0.25 + _glow.value * 0.5),
+                  blurRadius: 16 + _glow.value * 26,
+                  spreadRadius: _glow.value * 4,
                   offset: Offset(0, depth + 4),
                 ),
               ],
@@ -124,12 +125,13 @@ class _BubblyButtonState extends ConsumerState<BubblyButton>
   }
 
   Widget _face(bool enabled) {
-    final c = enabled ? widget.color : Color.lerp(widget.color, Palette.inkFaint, 0.6)!;
+    final c = enabled ? widget.color : Color.lerp(widget.color, Colors.white, 0.6)!;
+    final ink = enabled ? Palette.ink : Palette.inkFaint;
     final hasLabel = widget.label.isNotEmpty;
     final labelText = Text(
       widget.label,
       maxLines: 1,
-      style: TextStyle(fontFamily: kFont, fontSize: widget.fontSize, color: Palette.ink, height: 1.1),
+      style: TextStyle(fontFamily: kFont, fontSize: widget.fontSize, color: ink, height: 1.1),
     );
     final sub = widget.subtitle == null
         ? null
@@ -139,13 +141,13 @@ class _BubblyButtonState extends ConsumerState<BubblyButton>
             style: TextStyle(
               fontFamily: kFont,
               fontSize: widget.fontSize * (widget.vertical ? 0.62 : 0.55),
-              color: Palette.ink.withValues(alpha: 0.65),
+              color: ink.withValues(alpha: 0.65),
               height: 1.1,
             ),
           );
     final icon = widget.icon == null
         ? null
-        : Icon(widget.icon, color: Palette.ink, size: hasLabel ? widget.fontSize + 2 : widget.fontSize * 1.1);
+        : Icon(widget.icon, color: ink, size: hasLabel ? widget.fontSize + 2 : widget.fontSize * 1.1);
 
     final Widget content;
     if (!hasLabel) {

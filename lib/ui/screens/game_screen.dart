@@ -237,8 +237,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             Row(
               children: [
                 SymmetryBadge(type: s.target),
-                const Spacer(),
-                _ComboChip(combo: s.combo, fever: s.isFever),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: _ComboChip(combo: s.combo, fever: s.isFever),
+                    ),
+                  ),
+                ),
               ],
             ),
             const Spacer(),
@@ -414,13 +422,16 @@ class _ComboChip extends StatelessWidget {
                 boxShadow: softShadow(Palette.pinkDeep, blur: 10, y: 4, opacity: 0.3),
               ),
               child: Text(
-                fever ? 'FEVER ×${mult.toStringAsFixed(1)}' : 'COMBO $combo · ×${mult.toStringAsFixed(2)}',
+                fever ? 'FEVER ×${_fmtMult(mult)}' : '$combo COMBO ×${_fmtMult(mult)}',
                 style: TextStyle(fontFamily: kFont, fontSize: 15, color: fever ? Colors.white : Palette.ink),
               ),
             ).animate(onPlay: (c) => c.repeat(reverse: true)).scaleXY(end: 1.06, duration: 450.ms),
     );
   }
 }
+
+String _fmtMult(double m) =>
+    m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toStringAsFixed(m * 10 == (m * 10).roundToDouble() ? 1 : 2);
 
 /// 피버 중 화면 가장자리가 무지개빛으로 빛난다.
 class _FeverFrame extends StatefulWidget {

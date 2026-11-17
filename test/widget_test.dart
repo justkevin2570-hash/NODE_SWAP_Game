@@ -23,7 +23,9 @@ Future<ProviderContainer> _pumpApp(WidgetTester tester, {Map<String, Object> pre
   ]);
   addTearDown(container.dispose);
   await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const NodeSwapApp()));
-  await tester.pump(const Duration(milliseconds: 800));
+  for (int i = 0; i < 15; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
   return container;
 }
 
@@ -122,6 +124,86 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('한 번 더!'), findsOneWidget);
+    await _cleanup(tester);
+  });
+
+  testWidgets('러시: 5연속 빠른 클리어 → 피버 (시간 정지)', (tester) async {
+    final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+    await tester.tap(find.text('러시 시작'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 2000));
+    final ctrl = container.read(gameProvider.notifier);
+
+    Future<void> solveCurrent() async {
+      final s = container.read(gameProvider)!;
+      final sol = Solver(s.target).solve(s.board)!;
+      for (final (a, b) in sol.swaps) {
+        ctrl.swap(a, b);
+      }
+      if (sol.needsRotation) ctrl.rotate();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    for (int i = 0; i < 5; i++) {
+      await solveCurrent();
+      // 전환 연출이 끝날 때까지
+      await tester.pump(const Duration(milliseconds: 900));
+    }
+    var s = container.read(gameProvider)!;
+    expect(s.cleared, 5);
+    expect(s.combo, 5);
+    expect(s.isFever, isTrue);
+    expect(find.text('FEVER'), findsOneWidget);
+
+    final frozen = s.remainingMs;
+    await tester.pump(const Duration(seconds: 3));
+    s = container.read(gameProvider)!;
+    expect(s.remainingMs, frozen);
+    expect(s.feverMs, lessThan(6000));
+
+    // 피버 중 클리어는 점수 2배
+    final before = s.score;
+    await solveCurrent();
+    final gain = container.read(gameProvider)!.score - before;
+    expect(gain, greaterThan(500));
+
+    await tester.pump(const Duration(seconds: 8));
+    expect(container.read(gameProvider)!.isFever, isFalse);
+    ctrl.quit();
+    await _cleanup(tester);
+  });
+
+  testWidgets('클래식: 풀면 별과 함께 결과 화면', (tester) async {
+    final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+    await tester.tap(find.text('클래식'));
+    await tester.pump();
+    for (int i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.tap(find.text('보통'));
+    await tester.pump();
+    for (int i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pump(const Duration(milliseconds: 2000));
+    final s = container.read(gameProvider)!;
+    expect(s.phase, Phase.playing);
+    final sol = Solver(s.target).solve(s.board)!;
+    final ctrl = container.read(gameProvider.notifier);
+    for (final (a, b) in sol.swaps) {
+      ctrl.swap(a, b);
+    }
+    if (sol.needsRotation) ctrl.rotate();
+    await tester.pump(const Duration(milliseconds: 100));
+    final done = container.read(gameProvider)!;
+    expect(done.phase, Phase.over);
+    expect(done.won, isTrue);
+    expect(done.stars, 3);
+    await tester.pump(const Duration(milliseconds: 1700));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('CLEAR!'), findsOneWidget);
+    expect(find.text('다음 퍼즐'), findsOneWidget);
     await _cleanup(tester);
   });
 }
