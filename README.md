@@ -73,6 +73,39 @@ flutter run
 flutter build web --release --no-web-resources-cdn
 ```
 
+## 출시 빌드 (안드로이드)
+
+- 패키지 ID: `com.symmetryrush.game` (출시 후에는 바꿀 수 없어요)
+- 버전: `pubspec.yaml` 의 `version` (예: `2.1.0+3` → 이름 2.1.0, 빌드 번호 3). 올릴 때마다 빌드 번호를 늘려요.
+
+**서명 키**: `android/key.properties` 와 `android/app/upload-keystore.jks` 가 있으면 그 키로 서명하고, 없으면 개발용 키로 서명해요. 두 파일은 git 에 올라가지 않아요(`android/.gitignore`). 키를 잃어버리면 업데이트를 올릴 수 없으니 안전한 곳에 꼭 백업하세요.
+
+```
+# android/key.properties
+storePassword=비밀번호
+keyPassword=비밀번호
+keyAlias=upload
+storeFile=upload-keystore.jks
+```
+
+플레이스토어용(AAB):
+
+```bash
+flutter build appbundle --release
+```
+
+직접 설치용(기기 종류별로 나눈 APK, 대부분의 폰은 arm64-v8a):
+
+```bash
+flutter build apk --release --split-per-abi
+```
+
+**글꼴 줄이기**: 앱에는 실제로 쓰는 글자만 남긴 Jua(약 170KB)가 들어가요. 화면 문구를 바꾸거나 추가했으면 다시 만들어 주세요. 빠뜨리면 `test/font_coverage_test.dart` 가 알려줘요.
+
+```bash
+python3 tools/subset_fonts.py
+```
+
 ## 테스트
 
 ```bash
@@ -106,6 +139,7 @@ lib/
 tools/
   generate_audio.py   배경음악 4곡 + 효과음 30개를 numpy 로 합성
   generate_icons.py   앱 아이콘 생성
+  subset_fonts.py     한글 글꼴을 쓰는 글자만 남겨 줄이기 (원본은 tools/fonts/)
 ```
 
 ## 사운드와 폰트
