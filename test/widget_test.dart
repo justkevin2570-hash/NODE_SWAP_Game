@@ -6,6 +6,7 @@ import 'package:node_swap_game/audio/audio_engine.dart';
 import 'package:node_swap_game/core/storage.dart';
 import 'package:node_swap_game/game/game_controller.dart';
 import 'package:node_swap_game/game/game_state.dart';
+import 'package:node_swap_game/game/logic/rules.dart';
 import 'package:node_swap_game/game/logic/solver.dart';
 import 'package:node_swap_game/ui/screens/game_screen.dart';
 import 'package:node_swap_game/game/logic/board.dart';
@@ -510,5 +511,125 @@ void main() {
     expect(marked(), 0);
     ctrl.quit();
     await _cleanup(tester);
+  });
+
+  group('같은 퍼즐 다시', () {
+    Future<ProviderContainer> startClassicNormal(WidgetTester tester) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+      await tester.tap(find.text('클래식'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.tap(find.text('보통'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pump(const Duration(milliseconds: 2000));
+      return container;
+    }
+
+    Future<void> toResult(WidgetTester tester) async {
+      await tester.pump(const Duration(milliseconds: 1700));
+      for (int i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    Future<void> tapAndStart(WidgetTester tester, String label) async {
+      await tester.tap(find.text(label));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pump(const Duration(milliseconds: 2000)); // 카운트다운
+    }
+
+    testWidgets('클리어 → 같은 퍼즐 다시: 같은 보드로 처음부터 (시간·힌트·되돌리기 초기화)', (tester) async {
+      final container = await startClassicNormal(tester);
+      final ctrl = container.read(gameProvider.notifier);
+      final first = container.read(gameProvider)!;
+      // 힌트를 하나 쓰고 풀어서 클리어
+      ctrl.useHint();
+      final sol = Solver(first.target).solve(container.read(gameProvider)!.board)!;
+      for (final (a, b) in sol.swaps) {
+        ctrl.swap(a, b);
+      }
+      if (sol.needsRotation) ctrl.rotate();
+      expect(container.read(gameProvider)!.won, isTrue);
+      await toResult(tester);
+      expect(find.text('다음 퍼즐'), findsOneWidget);
+      expect(find.text('같은 퍼즐 다시'), findsOneWidget);
+
+      await tapAndStart(tester, '같은 퍼즐 다시');
+      final again = container.read(gameProvider)!;
+      expect(again.phase, Phase.playing);
+      expect(again.board, first.board);
+      expect(again.target, first.target);
+      expect(again.puzzle.par, first.puzzle.par);
+      expect(again.movesUsed, 0);
+      expect(again.hintsLeft, Rules.classicHints(Difficulty.normal));
+      expect(again.undosLeft, Rules.classicUndos(Difficulty.normal));
+      expect(again.remainingMs, greaterThan(Rules.classicTimeMs(Difficulty.normal) - 1000));
+      ctrl.quit();
+      await _cleanup(tester);
+    });
+
+    testWidgets('실패 → 큰 버튼은 같은 퍼즐 다시, 작은 버튼은 새 퍼즐', (tester) async {
+      final container = await startClassicNormal(tester);
+      final first = container.read(gameProvider)!;
+      // 시간 초과로 실패
+      for (int i = 0; i < 62; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      expect(container.read(gameProvider)!.phase, Phase.over);
+      await toResult(tester);
+      expect(find.text('같은 퍼즐 다시'), findsOneWidget);
+      expect(find.text('새 퍼즐'), findsOneWidget);
+      expect(find.text('다음 퍼즐'), findsNothing);
+
+      await tapAndStart(tester, '같은 퍼즐 다시');
+      expect(container.read(gameProvider)!.board, first.board);
+      container.read(gameProvider.notifier).quit();
+      await _cleanup(tester);
+    });
+
+    testWidgets('일시정지 "처음부터": 클래식은 같은 퍼즐, 러시는 새 도전', (tester) async {
+      final container = await startClassicNormal(tester);
+      final ctrl = container.read(gameProvider.notifier);
+      final first = container.read(gameProvider)!;
+      final sol = Solver(first.target).solve(first.board)!;
+      final (a, b) = sol.swaps.first;
+      ctrl.swap(a, b);
+      if (container.read(gameProvider)!.phase == Phase.playing) {
+        ctrl.pause();
+        ctrl.restart();
+        await tester.pump(const Duration(milliseconds: 2000));
+        final again = container.read(gameProvider)!;
+        expect(again.board, first.board);
+        expect(again.movesUsed, 0);
+      }
+      // 오른쪽 위 "새 퍼즐"은 다른 퍼즐로
+      final before = container.read(gameProvider)!.puzzle;
+      ctrl.newPuzzle();
+      expect(identical(container.read(gameProvider)!.puzzle, before), isFalse);
+
+      // 러시의 처음부터는 새 도전
+      ctrl.start(GameMode.rush);
+      await tester.pump(const Duration(milliseconds: 2000));
+      final rushFirst = container.read(gameProvider)!.puzzle;
+      ctrl.skip();
+      await tester.pump(const Duration(milliseconds: 800));
+      ctrl.restart();
+      await tester.pump(const Duration(milliseconds: 2000));
+      final r = container.read(gameProvider)!;
+      expect(r.mode, GameMode.rush);
+      expect(r.stage, 1);
+      expect(r.remainingMs, greaterThan(Rules.rushStartMs - 1000));
+      expect(identical(r.puzzle, rushFirst), isFalse);
+      ctrl.quit();
+      await _cleanup(tester);
+    });
   });
 }

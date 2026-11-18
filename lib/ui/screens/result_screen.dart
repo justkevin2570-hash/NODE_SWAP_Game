@@ -121,19 +121,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                       ),
                     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, curve: Curves.easeOutBack),
                     const Spacer(),
-                    BubblyButton(
-                      label: s.mode == GameMode.rush ? '한 번 더!' : (s.won ? '다음 퍼즐' : '다시 도전'),
-                      icon: Icons.replay_rounded,
-                      color: Palette.pink,
-                      deep: Palette.pinkDeep,
-                      width: double.infinity,
-                      height: 66,
-                      fontSize: 24,
-                      glow: true,
-                      onPressed: () => Navigator.of(context).pushReplacement(
-                        softRoute(GameScreen(mode: s.mode, difficulty: s.difficulty)),
-                      ),
-                    ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.4),
+                    ..._playButtons(context),
                     const SizedBox(height: 14),
                     BubblyButton(
                       label: '홈으로',
@@ -154,6 +142,55 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         ),
       ),
     );
+  }
+
+  void _go(Widget page) => Navigator.of(context).pushReplacement(softRoute(page));
+
+  /// 다시 하기 버튼들.
+  /// - 러시: 한 번 더
+  /// - 클래식 클리어: [다음 퍼즐] 크게, [같은 퍼즐 다시] 작게 (별을 더 받고 싶을 때)
+  /// - 클래식 실패: [같은 퍼즐 다시] 크게, [새 퍼즐] 작게
+  List<Widget> _playButtons(BuildContext context) {
+    Widget big(String label, IconData icon, VoidCallback onTap) => BubblyButton(
+          label: label,
+          icon: icon,
+          color: Palette.pink,
+          deep: Palette.pinkDeep,
+          width: double.infinity,
+          height: 66,
+          fontSize: 24,
+          glow: true,
+          onPressed: onTap,
+        ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.4);
+    Widget small(String label, IconData icon, VoidCallback onTap) => BubblyButton(
+          label: label,
+          icon: icon,
+          color: Palette.sky,
+          deep: Palette.skyDeep,
+          width: double.infinity,
+          height: 54,
+          fontSize: 19,
+          onPressed: onTap,
+        ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.4);
+
+    void samePuzzle() => _go(GameScreen(mode: s.mode, difficulty: s.difficulty, puzzle: s.puzzle));
+    void newPuzzle() => _go(GameScreen(mode: s.mode, difficulty: s.difficulty));
+
+    if (s.mode == GameMode.rush) {
+      return [big('한 번 더!', Icons.replay_rounded, newPuzzle)];
+    }
+    if (s.won) {
+      return [
+        big('다음 퍼즐', Icons.arrow_forward_rounded, newPuzzle),
+        const SizedBox(height: 12),
+        small('같은 퍼즐 다시', Icons.replay_rounded, samePuzzle),
+      ];
+    }
+    return [
+      big('같은 퍼즐 다시', Icons.replay_rounded, samePuzzle),
+      const SizedBox(height: 12),
+      small('새 퍼즐', Icons.refresh_rounded, newPuzzle),
+    ];
   }
 
   List<Widget> _stats(int best) {

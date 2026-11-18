@@ -11,6 +11,7 @@ import '../../core/storage.dart';
 import '../../core/theme.dart';
 import '../../game/game_controller.dart';
 import '../../game/game_state.dart';
+import '../../game/logic/generator.dart';
 import '../../game/logic/rules.dart';
 import '../widgets/board_view.dart';
 import '../widgets/bubbly.dart';
@@ -22,10 +23,13 @@ import '../widgets/pastel_background.dart';
 import 'result_screen.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
-  const GameScreen({super.key, required this.mode, this.difficulty = Difficulty.normal});
+  const GameScreen({super.key, required this.mode, this.difficulty = Difficulty.normal, this.puzzle});
 
   final GameMode mode;
   final Difficulty difficulty;
+
+  /// 클래식에서 같은 퍼즐을 다시 할 때 그 퍼즐.
+  final Puzzle? puzzle;
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -58,7 +62,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       onResume: _ctrl.appShown,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _ctrl.start(widget.mode, difficulty: widget.difficulty);
+      _ctrl.start(widget.mode, difficulty: widget.difficulty, puzzle: widget.puzzle);
     });
   }
 
@@ -382,7 +386,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       fontSize: 14,
       glow: stuck,
       sound: rush ? null : Sfx.button,
-      onPressed: s.canAct ? (rush ? _ctrl.skip : _ctrl.restart) : null,
+      onPressed: s.canAct ? (rush ? _ctrl.skip : _ctrl.newPuzzle) : null,
     );
   }
 

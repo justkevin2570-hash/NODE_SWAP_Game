@@ -52,10 +52,11 @@ class GameController extends Notifier<GameSession?> {
   }
 
   // ── 시작 ────────────────────────────────────────────────
-  void start(GameMode mode, {Difficulty difficulty = Difficulty.normal}) {
-    final puzzle = mode == GameMode.rush
+  /// 새 판을 시작한다. 클래식에서 [puzzle] 을 주면 그 퍼즐을 처음부터 다시 한다.
+  void start(GameMode mode, {Difficulty difficulty = Difficulty.normal, Puzzle? puzzle}) {
+    puzzle = mode == GameMode.rush
         ? _generator.generate(Rules.rushSpec(1))
-        : _generator.generate(Rules.classicSpec(difficulty));
+        : puzzle ?? _generator.generate(Rules.classicSpec(difficulty));
     final time = mode == GameMode.rush ? Rules.rushStartMs : Rules.classicTimeMs(difficulty);
     state = GameSession(
       mode: mode,
@@ -302,7 +303,16 @@ class GameController extends Notifier<GameSession?> {
     _audio.duck(false);
   }
 
+  /// 처음부터: 클래식은 같은 퍼즐을 처음부터, 러시는 새 도전(60초)으로.
   void restart() {
+    final s = state;
+    if (s == null) return;
+    _audio.duck(false);
+    start(s.mode, difficulty: s.difficulty, puzzle: s.mode == GameMode.classic ? s.puzzle : null);
+  }
+
+  /// 클래식: 새 퍼즐로 바꾼다.
+  void newPuzzle() {
     final s = state;
     if (s == null) return;
     _audio.duck(false);
