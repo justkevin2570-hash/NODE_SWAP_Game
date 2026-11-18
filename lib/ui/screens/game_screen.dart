@@ -273,9 +273,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             const SizedBox(height: 14),
             Row(
               children: [
-                SymmetryBadge(type: s.target),
-                const SizedBox(width: 10),
+                // 자리가 모자라면(콤보·피버 표시) 대칭 칩과 콤보 칩이 함께 조금씩 줄어든다.
+                Flexible(
+                  flex: 3,
+                  child: FittedBox(fit: BoxFit.scaleDown, child: SymmetryBadge(type: s.target)),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
+                  flex: 2,
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: FittedBox(
@@ -284,6 +289,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                // 손해가 있는 버튼(패스 -3초, 새 퍼즐)은 엄지가 잘 닿지 않는 위쪽에 작게 둔다.
+                _corner(s),
               ],
             ),
             const Spacer(),
@@ -359,25 +367,28 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
+  /// 위쪽 작은 버튼: 러시는 패스(-3초), 클래식은 새 퍼즐.
+  Widget _corner(GameSession s) {
+    final rush = widget.mode == GameMode.rush;
+    return BubblyButton(
+      label: rush ? '패스 -3초' : '새 퍼즐',
+      icon: rush ? Icons.fast_forward_rounded : Icons.refresh_rounded,
+      color: Palette.sky,
+      deep: Palette.skyDeep,
+      height: 40,
+      width: 112,
+      fontSize: 14,
+      glow: rush && s.stuck,
+      sound: rush ? null : Sfx.button,
+      onPressed: s.canAct ? (rush ? _ctrl.skip : _ctrl.restart) : null,
+    );
+  }
+
+  /// 하단: [되돌리기] [90도 회전] [힌트]. 가장 자주 쓰는 회전을 가운데에 크게, 양옆은 같은 크기로 대칭.
   Widget _controls(GameSession s, Color light, Color deep) {
     final rotateGlow = s.rotateToWin || (s.hint?.rotate ?? false);
     return Row(
       children: [
-        Expanded(
-          child: BubblyButton(
-            label: '힌트',
-            subtitle: '${s.hintsLeft}개 남음',
-            icon: Icons.lightbulb_rounded,
-            color: Palette.butter,
-            deep: Palette.butterDeep,
-            fontSize: 17,
-            height: 74,
-            vertical: true,
-            sound: null,
-            onPressed: s.canAct && !s.stuck && s.hintsLeft > 0 && s.hint == null ? _ctrl.useHint : null,
-          ),
-        ),
-        const SizedBox(width: 8),
         Expanded(
           child: BubblyButton(
             label: '되돌리기',
@@ -393,7 +404,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             onPressed: s.canUndo ? _ctrl.undo : null,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Expanded(
           flex: 2,
           child: KeyedSubtree(
@@ -412,37 +423,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Expanded(
-          child: widget.mode == GameMode.rush
-              ? BubblyButton(
-                  label: '패스',
-                  subtitle: '-3초',
-                  icon: Icons.fast_forward_rounded,
-                  color: Palette.sky,
-                  deep: Palette.skyDeep,
-                  fontSize: 17,
-                  height: 74,
-                  vertical: true,
-                  glow: s.stuck,
-                  sound: null,
-                  onPressed: s.canAct ? _ctrl.skip : null,
-                )
-              : BubblyButton(
-                  label: '다시',
-                  subtitle: '새 퍼즐',
-                  icon: Icons.refresh_rounded,
-                  color: Palette.sky,
-                  deep: Palette.skyDeep,
-                  fontSize: 17,
-                  height: 74,
-                  vertical: true,
-                  onPressed: s.canAct ? _ctrl.restart : null,
-                ),
+          child: BubblyButton(
+            label: '힌트',
+            subtitle: '${s.hintsLeft}개 남음',
+            icon: Icons.lightbulb_rounded,
+            color: Palette.butter,
+            deep: Palette.butterDeep,
+            fontSize: 17,
+            height: 74,
+            vertical: true,
+            sound: null,
+            onPressed: s.canAct && !s.stuck && s.hintsLeft > 0 && s.hint == null ? _ctrl.useHint : null,
+          ),
         ),
       ],
     );
   }
+
 }
 
 /// 남은 시간만 구독해서 자기 자신만 다시 그리는 시간 막대.
