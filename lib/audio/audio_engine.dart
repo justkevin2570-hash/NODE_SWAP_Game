@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:audio_session/audio_session.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart' as ja;
 
 import '../core/storage.dart';
 
@@ -88,7 +90,7 @@ class AudioEngine {
   /// (audioplayers 의 AudioPool 은 lowLatency 모드에서 재생이 끝난 플레이어를 돌려받지 못해
   /// 소리를 낼 때마다 새 플레이어를 만들고 해제하지 않는다 → 점점 느려지고 음악이 끊긴다.)
   final Map<Sfx, _Voices> _sfx = {};
-  final Map<Music, AudioPlayer> _music = {};
+  final Map<Music, _MusicTrack> _music = {};
   final Map<Music, double> _musicLevel = {};
   Music _current = Music.none;
   Timer? _fadeTimer;
@@ -141,10 +143,19 @@ class AudioEngine {
   Future<void> init() async {
     if (!enabled || _ready) return;
     try {
-      await AudioPlayer.global.setAudioContext(
-        AudioContextConfig(focus: AudioContextConfigFocus.mixWithOthers).build(),
-      );
+      // 배경음악: 앱 전체를 하나의 '음악' 오디오 세션으로 둔다. 다른 앱이 소리를 내면 멈추고,
+      // 전화처럼 잠깐 끼어든 소리가 끝나면 이어진다 (just_audio 가 처리).
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
     } catch (_) {}
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      // 효과음(audioplayers)은 오디오 포커스를 건드리지 않고 음악 위에 섞어서 낸다.
+      try {
+        await AudioPlayer.global.setAudioContext(
+          AudioContextConfig(focus: AudioContextConfigFocus.mixWithOthers).build(),
+        );
+      } catch (_) {}
+    }
     await Future.wait([
       for (final s in Sfx.values) _loadSfx(s),
       for (final m in Music.values)
@@ -176,13 +187,8 @@ class AudioEngine {
 
   Future<void> _loadMusic(Music m) async {
     try {
-      final p = AudioPlayer(playerId: 'music_${m.name}');
-      await p.setReleaseMode(ReleaseMode.loop);
-      // 배경음악은 오디오 포커스를 가져간다: 다른 앱(유튜브·음악 앱)이 소리를 내면 알아서 멈추고,
-      // 전화처럼 잠깐 끼어든 소리가 끝나면 다시 이어진다. (효과음은 포커스를 건드리지 않음)
-      await p.setAudioContext(AudioContextConfig(focus: AudioContextConfigFocus.gain).build());
-      await p.setSource(AssetSource('audio/music/${m.file}.wav'));
-      await p.setVolume(0);
+      final p = _MusicTrack('assets/audio/music/${m.file}.wav');
+      await p.load();
       _music[m] = p;
       _musicLevel[m] = 0;
     } catch (e) {
@@ -271,7 +277,6 @@ class AudioEngine {
       } catch (_) {}
     }
     // 게임 중 곡 전환(기본·긴장·피버)은 재생 위치가 맞춰져 있어 바로 바꾼다.
-    // (안드로이드는 새 곡이 포커스를 가져가는 순간 이전 곡이 멈춰서, 크로스페이드하면 소리가 잠깐 비어 버린다.)
     _fadeTo(next, prev.isGameLayer && next.isGameLayer ? Duration.zero : fade);
   }
 
@@ -322,6 +327,36 @@ class AudioEngine {
 }
 
 enum HapticKind { selection, light, medium, heavy }
+
+/// 배경음악 한 곡. just_audio(안드로이드는 ExoPlayer)로 재생해서 끝에서 처음으로 이음새 없이 반복된다.
+/// (audioplayers 의 반복 재생은 안드로이드 MediaPlayer 라 되감을 때 아주 짧게 끊기는 기기가 많다.)
+class _MusicTrack {
+  _MusicTrack(this.asset);
+
+  final String asset;
+  final ja.AudioPlayer _player = ja.AudioPlayer();
+
+  Future<void> load() async {
+    await _player.setAsset(asset);
+    await _player.setLoopMode(ja.LoopMode.one);
+    await _player.setVolume(0);
+  }
+
+  /// 재생 (just_audio 의 play() 는 멈출 때까지 끝나지 않는 Future 라 기다리지 않는다).
+  Future<void> resume() async {
+    if (!_player.playing) unawaited(_player.play().catchError((_) {}));
+  }
+
+  Future<void> pause() => _player.pause();
+
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  Future<Duration?> getCurrentPosition() async => _player.position;
+
+  Future<void> setVolume(double volume) => _player.setVolume(volume.clamp(0.0, 1.0));
+
+  Future<void> dispose() => _player.dispose();
+}
 
 /// 한 효과음의 플레이어 묶음. 돌아가며 재사용한다.
 class _Voices {

@@ -143,6 +143,13 @@ def put(out: np.ndarray, offset: int, x: np.ndarray) -> None:
         out[offset:j] += x[: j - offset]
 
 
+def periodic(fn, x: np.ndarray) -> np.ndarray:
+    """루프 음원에 필터를 걸 때: 앞뒤로 한 바퀴씩 이어 붙여 거른 뒤 가운데만 쓴다.
+    그냥 거르면 파일 맨 앞에서 필터가 '처음 시작하는' 상태라, 반복 재생할 때 이음새 소리가 달라진다."""
+    n = len(x)
+    return fn(np.concatenate([x, x, x]))[n:2 * n]
+
+
 def normalize(x: np.ndarray, peak: float = 0.9) -> np.ndarray:
     m = np.max(np.abs(x)) + 1e-9
     return x / m * peak
@@ -401,7 +408,7 @@ def build_game_track(level: str) -> np.ndarray:
            "arp": 0.55, "lead": 0.7, "fx": 0.6, "alarm": 1.0}
     out = tr.render(mix, sc, sc_buses=("bass", "pad", "arp"),
                     verb={"pad": 0.3, "arp": 0.25, "lead": 0.2, "clap": 0.15, "alarm": 0.4})
-    out = highpass(out, 30)
+    out = periodic(lambda v: highpass(v, 30), out)
     return fade(normalize(soft_clip(normalize(out, 1.0), 1.4), 0.82), 0.0, 0.0)
 
 
@@ -448,7 +455,7 @@ def build_menu_track() -> np.ndarray:
     mix = {"kick": 0.8, "shaker": 0.5, "clap": 0.6, "pad": 0.5, "bass": 0.55, "arp": 0.6, "lead": 0.8}
     out = tr.render(mix, sc, sc_buses=("pad", "bass"),
                     verb={"pad": 0.35, "lead": 0.35, "arp": 0.4})
-    out = highpass(out, 30)
+    out = periodic(lambda v: highpass(v, 30), out)
     return normalize(soft_clip(normalize(out, 1.0), 1.2), 0.75)
 
 
