@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:clock/clock.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../audio/audio_engine.dart';
@@ -23,6 +24,14 @@ class GameController extends Notifier<GameSession?> {
   Stream<GameEvent> get events => _events.stream;
 
   final PuzzleGenerator _generator = PuzzleGenerator();
+
+  /// 미리 만들어 둔 러시 퍼즐 (스테이지 → 퍼즐).
+  /// 높은 스테이지는 퍼즐 하나 만드는 데 최대 0.2초쯤 걸려서, 전환 순간에 만들면 화면이 멈칫한다.
+  /// 그래서 지금 퍼즐을 푸는 동안 다음에 필요할 퍼즐(클리어 시 다음 스테이지, 실패 시 같은 스테이지)을
+  /// 백그라운드 isolate 에서 만들어 둔다.
+  final Map<int, Puzzle> _ready = {};
+  final Set<int> _preparing = {};
+  int _gameId = 0;
   Timer? _timer;
   Stopwatch _clock = clock.stopwatch();
   int _lastTick = 0;
@@ -64,6 +73,10 @@ class GameController extends Notifier<GameSession?> {
     _phaseAcc = 0;
     _puzzleElapsed = 0;
     _pendingNext = false;
+    _gameId++;
+    _ready.clear();
+    _preparing.clear();
+    if (mode == GameMode.rush) _prefetchAround(1);
     _clock = clock.stopwatch()..start();
     _lastTick = 0;
     _timer?.cancel();
@@ -412,7 +425,8 @@ class GameController extends Notifier<GameSession?> {
     }
     if (_pendingNext) {
       _pendingNext = false;
-      final puzzle = _generator.generate(Rules.rushSpec(s.stage));
+      final puzzle = _ready.remove(s.stage) ?? _generator.generate(Rules.rushSpec(s.stage));
+      _prefetchAround(s.stage);
       _solution = Solver(puzzle.target).solve(puzzle.board, maxDepth: puzzle.maxMoves);
       _puzzleElapsed = 0;
       state = s.copyWith(
@@ -431,6 +445,30 @@ class GameController extends Notifier<GameSession?> {
     } else {
       state = s.copyWith(phase: Phase.playing);
     }
+  }
+
+  /// 지금 스테이지(실패·패스 대비)와 다음 스테이지(클리어 대비) 퍼즐을 미리 만든다.
+  void _prefetchAround(int stage) {
+    _ready.removeWhere((st, _) => st < stage); // 지나간 스테이지 것은 버린다
+    for (final st in [stage, stage + 1]) {
+      if (_ready.containsKey(st) || _preparing.contains(st)) continue;
+      _preparing.add(st);
+      final game = _gameId;
+      final spec = Rules.rushSpec(st);
+      _generateInBackground(spec).then((p) {
+        if (game != _gameId) return; // 그 사이 새 게임이 시작됐으면 버린다
+        _preparing.remove(st);
+        _ready[st] = p;
+      }, onError: (_) => _preparing.remove(st));
+    }
+  }
+
+  Future<Puzzle> _generateInBackground(PuzzleSpec spec) {
+    // 웹은 isolate 를 못 쓰니, 전환 순간을 피해 조금 뒤에 만든다.
+    if (kIsWeb) {
+      return Future.delayed(const Duration(milliseconds: 400), () => _generator.generate(spec));
+    }
+    return generatePuzzleInIsolate(spec);
   }
 
   void _timeUp() {

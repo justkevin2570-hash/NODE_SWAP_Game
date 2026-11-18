@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:math';
 
 import 'board.dart';
@@ -137,3 +138,8 @@ class PuzzleGenerator {
     return n;
   }
 }
+
+/// 다른 isolate 에서 퍼즐을 만든다 (UI 스레드를 막지 않음).
+/// 최상위 함수라서 isolate 로 넘기는 클로저가 spec 외에는 아무것도 붙잡지 않는다.
+Future<Puzzle> generatePuzzleInIsolate(PuzzleSpec spec) =>
+    Isolate.run(() => PuzzleGenerator().generate(spec));

@@ -138,6 +138,12 @@ void main() {
       print('generated 156 puzzles in ${sw.elapsedMilliseconds}ms');
     });
 
+    test('isolate 에서도 퍼즐을 만들 수 있다 (러시 미리 만들기용)', () async {
+      final p = await generatePuzzleInIsolate(Rules.rushSpec(21));
+      final s = Solver(p.target).solve(p.board, maxDepth: p.maxMoves)!;
+      expect(s.moveCount, p.par);
+    });
+
     test('클래식 난이도별 생성', () {
       final gen = PuzzleGenerator(Random(7));
       for (final d in Difficulty.values) {
