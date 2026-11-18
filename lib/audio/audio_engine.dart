@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/storage.dart';
@@ -93,6 +94,48 @@ class AudioEngine {
   Timer? _fadeTimer;
   bool _ready = false;
   bool _unlocked = !kIsWeb; // 웹은 첫 터치 전까지 소리를 낼 수 없다
+  bool _ducked = false;
+
+  /// 앱이 백그라운드(홈 화면, 다른 앱, 화면 꺼짐)에 있는 동안은 아무 소리도 내지 않는다.
+  bool _background = false;
+  AppLifecycleListener? _lifecycle;
+
+  @visibleForTesting
+  bool get debugInBackground => _background;
+
+  /// 앱이 화면에서 사라지면 음악을 멈추고, 돌아오면 이어서 재생한다.
+  void attachLifecycle() {
+    if (!enabled || _lifecycle != null) return;
+    _lifecycle = AppLifecycleListener(
+      onHide: _enterBackground,
+      onPause: _enterBackground,
+      onShow: _leaveBackground,
+      onResume: _leaveBackground,
+    );
+  }
+
+  void _enterBackground() {
+    if (_background) return;
+    _background = true;
+    _fadeTimer?.cancel();
+    // 페이드 도중이었다면 목표 상태로 정리해 두고 모두 멈춘다.
+    for (final m in _music.keys) {
+      _musicLevel[m] = m == _current ? 1.0 : 0.0;
+      _music[m]!.pause().catchError((_) {});
+    }
+  }
+
+  void _leaveBackground() {
+    if (!_background) return;
+    _background = false;
+    if (!enabled || !_ready || !_unlocked) return;
+    final p = _music[_current];
+    if (p == null) return;
+    p.setVolume(_vol(_current)).catchError((_) {});
+    p.resume().catchError((_) {});
+  }
+
+  double _vol(Music m) => (_musicLevel[m] ?? 0) * _musicVolume * (_ducked ? 0.3 : 1.0);
 
   Future<void> init() async {
     if (!enabled || _ready) return;
@@ -148,7 +191,7 @@ class AudioEngine {
     _sfxVolume = s.sfxVolume;
     _haptics = s.haptics;
     for (final e in _music.entries) {
-      e.value.setVolume((_musicLevel[e.key] ?? 0) * _musicVolume);
+      e.value.setVolume(_vol(e.key)).catchError((_) {});
     }
   }
 
@@ -165,7 +208,7 @@ class AudioEngine {
 
   // ── 효과음 ───────────────────────────────────────────────
   void play(Sfx s, {double volume = 1.0}) {
-    if (!enabled || !_ready || !_unlocked || _sfxVolume <= 0) return;
+    if (!enabled || !_ready || !_unlocked || _background || _sfxVolume <= 0) return;
     _sfx[s]?.play(min(1.0, s.gain * volume * _sfxVolume));
   }
 
@@ -195,6 +238,22 @@ class AudioEngine {
     final prev = _current;
     _current = next;
     if (!enabled || !_ready || !_unlocked) return;
+    if (_background) {
+      // 백그라운드에서는 곡만 바꿔 두고, 돌아왔을 때 그 곡을 재생한다.
+      for (final m in _music.keys) {
+        _musicLevel[m] = m == next ? 1.0 : 0.0;
+        if (m != next) _music[m]!.pause().catchError((_) {});
+      }
+      if (next.isGameLayer && prev.isGameLayer) {
+        try {
+          final pos = await _music[prev]?.getCurrentPosition();
+          if (pos != null) await _music[next]?.seek(pos);
+        } catch (_) {}
+      } else {
+        await _music[next]?.seek(Duration.zero).catchError((_) {});
+      }
+      return;
+    }
 
     final nextPlayer = _music[next];
     if (nextPlayer != null) {
@@ -223,7 +282,7 @@ class AudioEngine {
         final goal = m == target ? 1.0 : 0.0;
         final v = (start[m] ?? 0) + (goal - (start[m] ?? 0)) * k;
         _musicLevel[m] = v;
-        _music[m]!.setVolume(v * _musicVolume).catchError((_) {});
+        _music[m]!.setVolume(_vol(m)).catchError((_) {});
       }
       if (i >= steps) {
         t.cancel();
@@ -236,14 +295,15 @@ class AudioEngine {
 
   /// 일시정지 화면 등에서 음악을 잠깐 줄인다.
   void duck(bool on) {
+    _ducked = on;
     for (final e in _music.entries) {
-      final level = (_musicLevel[e.key] ?? 0) * (on ? 0.3 : 1.0);
-      e.value.setVolume(level * _musicVolume).catchError((_) {});
+      e.value.setVolume(_vol(e.key)).catchError((_) {});
     }
   }
 
   void dispose() {
     _fadeTimer?.cancel();
+    _lifecycle?.dispose();
     for (final v in _sfx.values) {
       for (final p in v.players) {
         p.dispose();
@@ -284,6 +344,7 @@ class _Voices {
 final audioProvider = Provider<AudioEngine>((ref) {
   final engine = AudioEngine();
   ref.listen(settingsProvider, (_, s) => engine.applySettings(s), fireImmediately: true);
+  engine.attachLifecycle();
   engine.init();
   ref.onDispose(engine.dispose);
   return engine;
