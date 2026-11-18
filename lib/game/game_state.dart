@@ -56,6 +56,7 @@ class GameSession {
     this.newRecord = false,
     this.lastClearMs = 0,
     this.pausedFrom,
+    this.expired = false,
   });
 
   final GameMode mode;
@@ -91,6 +92,9 @@ class GameSession {
   final bool newRecord;
   final int lastClearMs;
   final Phase? pausedFrom;
+
+  /// 오래 자리를 비워서 끝난 판인지 (러시 백그라운드 타임아웃).
+  final bool expired;
 
   SymmetryType get target => puzzle.target;
   int get maxMoves => puzzle.maxMoves;
@@ -132,6 +136,7 @@ class GameSession {
     bool? newRecord,
     int? lastClearMs,
     Phase? pausedFrom,
+    bool? expired,
   }) {
     return GameSession(
       mode: mode,
@@ -159,6 +164,7 @@ class GameSession {
       newRecord: newRecord ?? this.newRecord,
       lastClearMs: lastClearMs ?? this.lastClearMs,
       pausedFrom: pausedFrom ?? this.pausedFrom,
+      expired: expired ?? this.expired,
     );
   }
 }
@@ -232,6 +238,11 @@ class HintEvent extends GameEvent {
 
 class TimeUpEvent extends GameEvent {
   const TimeUpEvent();
+}
+
+/// 러시 도중 오래 자리를 비워서 판이 끝났다.
+class SessionExpiredEvent extends GameEvent {
+  const SessionExpiredEvent();
 }
 
 class GameOverEvent extends GameEvent {

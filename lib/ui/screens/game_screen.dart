@@ -49,7 +49,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     super.initState();
     _ctrl = ref.read(gameProvider.notifier);
     _sub = _ctrl.events.listen(_onEvent);
-    _lifecycle = AppLifecycleListener(onHide: _ctrl.pause, onPause: _ctrl.pause);
+    _lifecycle = AppLifecycleListener(
+      onHide: _ctrl.appHidden,
+      onPause: _ctrl.appHidden,
+      onShow: _ctrl.appShown,
+      onResume: _ctrl.appShown,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ctrl.start(widget.mode, difficulty: widget.difficulty);
     });
@@ -156,6 +161,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           fx?.floatText('돌려 보세요!', _centerOf(_rotateKey) - const Offset(0, 30),
               color: Palette.lavenderDeep, size: 22);
         }
+      case SessionExpiredEvent():
+        fx?.banner('오래 자리를 비웠어요',
+            sub: '이번 판은 여기까지! 점수는 기록에 남아요',
+            color: Palette.skyDeep,
+            size: 40,
+            duration: const Duration(milliseconds: 1600));
       case TimeUpEvent():
         fx?.banner('TIME UP!', color: Palette.danger, size: 64, duration: const Duration(milliseconds: 1500));
         if (board != null) particles?.burst(board.centerGlobal, count: 30, colors: [Palette.inkFaint, Palette.lavender]);

@@ -235,4 +235,118 @@ void main() {
     ctrl.quit();
     await _cleanup(tester);
   });
+
+  group('앱 밖으로 나갔다 돌아올 때', () {
+    Future<void> leaveApp(WidgetTester tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    }
+
+    Future<void> comeBack(WidgetTester tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    }
+
+    Future<ProviderContainer> startRush(WidgetTester tester) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+      await tester.tap(find.text('러시 시작'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump(const Duration(milliseconds: 2000));
+      return container;
+    }
+
+    testWidgets('러시: 5분 넘게 비우면 판이 끝나고 점수가 기록된다', (tester) async {
+      final container = await startRush(tester);
+      final ctrl = container.read(gameProvider.notifier);
+      // 한 판 풀어서 점수를 만든다
+      final s0 = container.read(gameProvider)!;
+      final sol = Solver(s0.target).solve(s0.board)!;
+      for (final (a, b) in sol.swaps) {
+        ctrl.swap(a, b);
+      }
+      if (sol.needsRotation) ctrl.rotate();
+      await tester.pump(const Duration(milliseconds: 900));
+      final score = container.read(gameProvider)!.score;
+      expect(score, greaterThan(0));
+
+      await leaveApp(tester);
+      expect(container.read(gameProvider)!.phase, Phase.paused);
+      final remaining = container.read(gameProvider)!.remainingMs;
+      await tester.pump(const Duration(minutes: 5, seconds: 1));
+      // 나가 있는 동안 시간이 흐르지 않았다
+      expect(container.read(gameProvider)!.remainingMs, remaining);
+      await comeBack(tester);
+      await tester.pump();
+
+      final s = container.read(gameProvider)!;
+      expect(s.phase, Phase.over);
+      expect(s.expired, isTrue);
+      expect(container.read(recordsProvider).rushBestScore, score);
+      for (int i = 0; i < 25; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text('한 번 더!'), findsOneWidget);
+      expect(find.text('신기록!'), findsOneWidget); // 첫 기록이라 신기록
+      await _cleanup(tester);
+    });
+
+    testWidgets('러시: 5분 안에 돌아오면 일시정지 상태로 이어서 한다', (tester) async {
+      final container = await startRush(tester);
+      await leaveApp(tester);
+      await tester.pump(const Duration(minutes: 4, seconds: 50));
+      await comeBack(tester);
+      await tester.pump();
+      final s = container.read(gameProvider)!;
+      expect(s.phase, Phase.paused);
+      expect(s.expired, isFalse);
+      expect(find.text('잠깐 쉬어요'), findsOneWidget);
+      container.read(gameProvider.notifier).quit();
+      await _cleanup(tester);
+    });
+
+    testWidgets('러시: 퍼즐 전환 순간에 나가도 시간이 흐르지 않는다', (tester) async {
+      final container = await startRush(tester);
+      final ctrl = container.read(gameProvider.notifier);
+      ctrl.skip(); // 전환 단계로
+      expect(container.read(gameProvider)!.phase, Phase.transition);
+      await leaveApp(tester);
+      final remaining = container.read(gameProvider)!.remainingMs;
+      await tester.pump(const Duration(seconds: 30));
+      expect(container.read(gameProvider)!.remainingMs, remaining);
+      expect(container.read(gameProvider)!.phase, Phase.paused);
+      await comeBack(tester);
+      ctrl.resume();
+      await tester.pump(const Duration(milliseconds: 900));
+      expect(container.read(gameProvider)!.phase, Phase.playing);
+      ctrl.quit();
+      await _cleanup(tester);
+    });
+
+    testWidgets('클래식: 오래 비워도 끝내지 않는다', (tester) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+      await tester.tap(find.text('클래식'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.tap(find.text('보통'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pump(const Duration(milliseconds: 2000));
+      await leaveApp(tester);
+      await tester.pump(const Duration(minutes: 30));
+      await comeBack(tester);
+      await tester.pump();
+      final s = container.read(gameProvider)!;
+      expect(s.phase, Phase.paused);
+      expect(s.expired, isFalse);
+      container.read(gameProvider.notifier).quit();
+      await _cleanup(tester);
+    });
+  });
 }

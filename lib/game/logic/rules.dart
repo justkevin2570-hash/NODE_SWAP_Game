@@ -24,6 +24,10 @@ abstract final class Rules {
   /// 이동 수를 다 쓰고 실패했을 때 깎이는 시간.
   static const int rushFailPenaltyMs = 5000;
 
+  /// 러시 도중 앱 밖에 이만큼 넘게 있다가 돌아오면 그 판을 끝낸다 (점수는 기록에 반영).
+  /// 클래식은 시간 제한 없이 일시정지 상태로 기다린다.
+  static const Duration rushBackgroundTimeout = Duration(minutes: 5);
+
   /// 이 시간 안에 퍼즐을 풀면 콤보가 이어진다.
   static const int comboWindowMs = 8000;
 

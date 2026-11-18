@@ -74,6 +74,7 @@ class GameController extends Notifier<GameSession?> {
     _puzzleElapsed = 0;
     _pendingNext = false;
     _gameId++;
+    _hiddenAt = null;
     _ready.clear();
     _preparing.clear();
     if (mode == GameMode.rush) _prefetchAround(1);
@@ -283,7 +284,8 @@ class GameController extends Notifier<GameSession?> {
 
   void pause() {
     final s = state;
-    if (s == null || (s.phase != Phase.playing && s.phase != Phase.countdown)) return;
+    // 퍼즐 전환 중에도 멈춘다 (안 그러면 앱 밖에 있는 동안 시간이 흐를 수 있다).
+    if (s == null || !const [Phase.playing, Phase.countdown, Phase.transition].contains(s.phase)) return;
     state = s.copyWith(phase: Phase.paused, pausedFrom: s.phase);
     _audio.duck(true);
   }
@@ -471,7 +473,32 @@ class GameController extends Notifier<GameSession?> {
     return generatePuzzleInIsolate(spec);
   }
 
-  void _timeUp() {
+  // ── 앱이 화면에서 사라졌다 돌아올 때 ──────────────────────
+  DateTime? _hiddenAt;
+
+  /// 앱이 백그라운드로 갔다: 시각을 기억하고 일시정지.
+  void appHidden() {
+    final s = state;
+    if (s == null || s.phase == Phase.over) return;
+    _hiddenAt ??= clock.now();
+    pause();
+  }
+
+  /// 앱으로 돌아왔다: 러시에서 너무 오래 비웠으면 그 판을 끝낸다.
+  void appShown() {
+    final at = _hiddenAt;
+    _hiddenAt = null;
+    final s = state;
+    if (at == null || s == null || s.phase == Phase.over) return;
+    if (s.mode == GameMode.rush && clock.now().difference(at) >= Rules.rushBackgroundTimeout) {
+      _endRun(expired: true);
+    }
+  }
+
+  void _timeUp() => _endRun(expired: false);
+
+  /// 판을 끝내고 기록을 저장한다. 러시는 시간이 다 됐거나(expired=false) 오래 비웠을 때(expired=true).
+  void _endRun({required bool expired}) {
     final s = state!;
     _timer?.cancel();
     final record = s.mode == GameMode.rush
@@ -479,17 +506,19 @@ class GameController extends Notifier<GameSession?> {
         : false;
     state = s.copyWith(
       phase: Phase.over,
-      remainingMs: 0,
+      remainingMs: expired ? s.remainingMs : 0,
       won: false,
       newRecord: record,
       feverMs: 0,
+      expired: expired,
       clearSelection: true,
       clearHint: true,
     );
-    _emit(const TimeUpEvent());
+    _audio.duck(false);
+    _emit(expired ? const SessionExpiredEvent() : const TimeUpEvent());
     _emit(const GameOverEvent());
     _audio.play(Sfx.gameover);
-    _audio.haptic(HapticKind.heavy);
+    if (!expired) _audio.haptic(HapticKind.heavy);
     _audio.setMusic(Music.none, fade: const Duration(milliseconds: 500));
   }
 

@@ -60,7 +60,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final records = ref.watch(recordsProvider);
     final best = s.mode == GameMode.rush ? records.rushBestScore : (records.classicBest[s.difficulty] ?? 0);
     final title = switch (s.mode) {
-      GameMode.rush => s.newRecord ? '신기록!' : 'TIME UP!',
+      GameMode.rush => s.newRecord ? '신기록!' : (s.expired ? '게임 종료' : 'TIME UP!'),
       GameMode.classic => s.won ? 'CLEAR!' : '아쉬워요!',
     };
     final titleColor = s.newRecord
