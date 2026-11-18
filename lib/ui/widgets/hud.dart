@@ -140,36 +140,94 @@ class _TimerBarState extends State<TimerBar> with SingleTickerProviderStateMixin
 }
 
 /// 남은 이동 수 구슬.
+/// 남은 이동 표시: 보드 타일을 줄인 작은 사각형들.
+/// 남은 이동은 테마색으로 채우고, 쓴 이동은 테두리만 남긴다 (크기는 그대로라 줄이 흔들리지 않음).
 class MovesPips extends StatelessWidget {
-  const MovesPips({super.key, required this.used, required this.max, required this.color});
+  const MovesPips({
+    super.key,
+    required this.used,
+    required this.max,
+    required this.color,
+    this.light,
+  });
 
   final int used;
   final int max;
+
+  /// 테마의 진한 색.
   final Color color;
+
+  /// 테마의 밝은 색 (없으면 진한 색에서 만든다).
+  final Color? light;
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 5,
-      runSpacing: 5,
+      spacing: 6,
+      runSpacing: 6,
       alignment: WrapAlignment.center,
       children: [
         for (int i = 0; i < max; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            width: i < max - used ? 16 : 11,
-            height: i < max - used ? 16 : 11,
+          MoveTile(filled: i < max - used, deep: color, light: light ?? Color.lerp(color, Colors.white, 0.45)!),
+      ],
+    );
+  }
+}
+
+/// 남은 이동 한 칸.
+class MoveTile extends StatelessWidget {
+  const MoveTile({super.key, required this.filled, required this.deep, required this.light, this.size = 22});
+
+  final bool filled;
+  final Color deep;
+  final Color light;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(size * 0.3);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: filled
+              ? [Color.lerp(light, Colors.white, 0.25)!, deep]
+              : [Colors.white.withValues(alpha: 0), Colors.white.withValues(alpha: 0)],
+        ),
+        border: Border.all(
+          color: filled ? Colors.white.withValues(alpha: 0.9) : deep.withValues(alpha: 0.55),
+          width: filled ? 1.5 : 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: deep.withValues(alpha: filled ? 0.35 : 0),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      // 작은 광택 (채워진 칸에만)
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: filled ? 1 : 0,
+        child: Align(
+          alignment: const Alignment(-0.35, -0.55),
+          child: Container(
+            width: size * 0.42,
+            height: size * 0.18,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: i < max - used ? color : Palette.inkFaint.withValues(alpha: 0.5),
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: i < max - used
-                  ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6)]
-                  : null,
+              color: Colors.white.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(size),
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }

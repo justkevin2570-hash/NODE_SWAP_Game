@@ -317,9 +317,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               children: [
                 Text('남은 이동', style: TextStyles.caption.copyWith(fontSize: 15)),
                 const SizedBox(width: 10),
-                Flexible(child: MovesPips(used: s.movesUsed, max: s.maxMoves, color: deep)),
-                const SizedBox(width: 10),
-                Text('${s.movesLeft}', style: TextStyles.number.copyWith(fontSize: 22, color: deep)),
+                Flexible(child: MovesPips(used: s.movesUsed, max: s.maxMoves, color: deep, light: light)),
               ],
             ),
             const Spacer(),
