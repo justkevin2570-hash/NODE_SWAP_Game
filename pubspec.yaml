@@ -32,3 +32,9 @@ flutter:
     - family: Jua
       fonts:
         - asset: assets/fonts/Jua-Regular.ttf
+    # 수식(y = x 등)용. STIX Two 에서 필요한 글자만 남긴 것 (OFL, assets/fonts/OFL-STIXTwo.txt)
+    - family: STIXTwoMath
+      fonts:
+        - asset: assets/fonts/STIXTwoMath-Regular.ttf
+        - asset: assets/fonts/STIXTwoMath-Italic.ttf
+          style: italic

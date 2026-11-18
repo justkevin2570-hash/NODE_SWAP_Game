@@ -111,4 +111,4 @@ tools/
   - 다시 만들려면 `pip install numpy scipy` 후에 `python3 tools/generate_audio.py`를 실행하세요.
   - 배경음악은 `menu`, `play`, `tense`, `fever` 네 곡이에요.
   - 게임용 세 곡은 같은 템포·길이·화성이에요. 남은 시간이 적어지거나 피버가 발동하면, 재생 위치를 맞춘 채로 자연스럽게 다음 곡으로 넘어가요.
-- **폰트**: [Jua](https://fonts.google.com/specimen/Jua)를 써요. SIL Open Font License이고, 라이선스 전문은 `assets/fonts/OFL.txt`에 있어요.
+- **폰트**: 본문은 [Jua](https://fonts.google.com/specimen/Jua), 수식(y = x 등)은 [STIX Two](https://github.com/stipub/stixfonts)에서 필요한 글자만 남겨 써요. 둘 다 SIL Open Font License이고, 라이선스 전문은 `assets/fonts/OFL-Jua.txt`, `assets/fonts/OFL-STIXTwo.txt`에 있어요.

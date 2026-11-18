@@ -16,6 +16,7 @@ import '../widgets/bubbly.dart';
 import '../widgets/fx_layer.dart';
 import '../widgets/hud.dart';
 import '../widgets/layout.dart';
+import '../widgets/math_text.dart';
 import '../widgets/particles.dart';
 import '../widgets/pastel_background.dart';
 import 'game_screen.dart';
@@ -240,7 +241,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(_lesson.body,
+                MathRichText(_lesson.body,
                     textAlign: TextAlign.center, style: TextStyles.body.copyWith(height: 1.45, color: Palette.inkSoft)),
               ],
             ),
@@ -295,7 +296,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
               _tip(Icons.local_fire_department_rounded, Palette.butterDeep,
                   '${Rules.feverEvery}콤보마다 피버 타임! 시간이 멈추고 점수 2배.'),
               _tip(Icons.block_rounded, Palette.danger, '더 이상 풀 수 없으면 바로 다음 퍼즐로 넘어가요 (−4초).'),
-              _tip(Icons.call_made_rounded, Palette.peachDeep, '6스테이지부터 y = x, y = -x 대칭도 나와요.'),
+              _tip(Icons.call_made_rounded, Palette.peachDeep, '6스테이지부터 {y = x}, {y = -x} 대칭도 나와요.'),
             ],
           ),
         ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2),
@@ -321,7 +322,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
           children: [
             Icon(icon, color: color, size: 26),
             const SizedBox(width: 12),
-            Expanded(child: Text(text, style: TextStyles.body.copyWith(fontSize: 15.5))),
+            Expanded(child: MathRichText(text, style: TextStyles.body.copyWith(fontSize: 15.5))),
           ],
         ),
       );

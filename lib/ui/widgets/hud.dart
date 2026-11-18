@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/palette.dart';
 import '../../core/theme.dart';
 import '../../game/logic/symmetry.dart';
+import 'math_text.dart';
 
 /// 남은 시간 막대. 시간이 적으면 붉게 맥박친다.
 class TimerBar extends StatefulWidget {
@@ -219,9 +220,11 @@ class SymmetryBadge extends StatelessWidget {
               // 식 부분은 테마 색으로 조금 크게, "대칭"은 다른 대칭 칩과 같은 모양으로
               Text.rich(
                 TextSpan(children: [
-                  TextSpan(
-                    text: type.formula,
-                    style: TextStyle(fontSize: compact ? 15 : 18.5, color: Color.lerp(deep, Palette.ink, 0.6)),
+                  // 식 부분은 교과서 수식처럼 (세리프 이탤릭 변수, 수학 빼기 기호)
+                  ...mathSpans(
+                    type.formula!,
+                    fontSize: compact ? 18 : 22,
+                    color: Color.lerp(deep, Palette.ink, 0.6)!,
                   ),
                   const TextSpan(text: ' 대칭'),
                 ]),
