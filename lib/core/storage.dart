@@ -15,6 +15,7 @@ class Settings {
     this.sfxVolume = 0.8,
     this.haptics = true,
     this.tutorialSeen = false,
+    this.pairPreview = true,
   });
 
   final double musicVolume;
@@ -22,17 +23,22 @@ class Settings {
   final bool haptics;
   final bool tutorialSeen;
 
+  /// 타일을 고르면 대칭 짝 칸을 표시할지.
+  final bool pairPreview;
+
   Settings copyWith({
     double? musicVolume,
     double? sfxVolume,
     bool? haptics,
     bool? tutorialSeen,
+    bool? pairPreview,
   }) =>
       Settings(
         musicVolume: musicVolume ?? this.musicVolume,
         sfxVolume: sfxVolume ?? this.sfxVolume,
         haptics: haptics ?? this.haptics,
         tutorialSeen: tutorialSeen ?? this.tutorialSeen,
+        pairPreview: pairPreview ?? this.pairPreview,
       );
 }
 
@@ -47,6 +53,7 @@ class SettingsNotifier extends Notifier<Settings> {
       sfxVolume: p.getDouble('sfxVolume') ?? 0.8,
       haptics: p.getBool('haptics') ?? true,
       tutorialSeen: p.getBool('tutorialSeen') ?? false,
+      pairPreview: p.getBool('pairPreview') ?? true,
     );
   }
 
@@ -63,6 +70,11 @@ class SettingsNotifier extends Notifier<Settings> {
   void setHaptics(bool v) {
     state = state.copyWith(haptics: v);
     _p.setBool('haptics', v);
+  }
+
+  void setPairPreview(bool v) {
+    state = state.copyWith(pairPreview: v);
+    _p.setBool('pairPreview', v);
   }
 
   void markTutorialSeen() {

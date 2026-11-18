@@ -57,6 +57,9 @@ class GameSession {
     this.lastClearMs = 0,
     this.pausedFrom,
     this.expired = false,
+    this.undosLeft = 0,
+    this.canUndoMove = false,
+    this.stuck = false,
   });
 
   final GameMode mode;
@@ -95,6 +98,17 @@ class GameSession {
 
   /// 오래 자리를 비워서 끝난 판인지 (러시 백그라운드 타임아웃).
   final bool expired;
+
+  /// 남은 되돌리기 수.
+  final int undosLeft;
+
+  /// 이번 퍼즐에서 되돌릴 swap 이 있는지.
+  final bool canUndoMove;
+
+  /// 남은 이동으로는 더 풀 수 없는 상태 (되돌리기나 패스만 가능).
+  final bool stuck;
+
+  bool get canUndo => canAct && canUndoMove && undosLeft > 0;
 
   SymmetryType get target => puzzle.target;
   int get maxMoves => puzzle.maxMoves;
@@ -137,6 +151,9 @@ class GameSession {
     int? lastClearMs,
     Phase? pausedFrom,
     bool? expired,
+    int? undosLeft,
+    bool? canUndoMove,
+    bool? stuck,
   }) {
     return GameSession(
       mode: mode,
@@ -165,6 +182,9 @@ class GameSession {
       lastClearMs: lastClearMs ?? this.lastClearMs,
       pausedFrom: pausedFrom ?? this.pausedFrom,
       expired: expired ?? this.expired,
+      undosLeft: undosLeft ?? this.undosLeft,
+      canUndoMove: canUndoMove ?? this.canUndoMove,
+      stuck: stuck ?? this.stuck,
     );
   }
 }
@@ -193,6 +213,16 @@ class InvalidSwapEvent extends GameEvent {
   const InvalidSwapEvent(this.a, this.b);
   final int a;
   final int b;
+}
+
+/// 막혔다: 되돌리기나 패스를 기다린다.
+class StuckEvent extends GameEvent {
+  const StuckEvent();
+}
+
+/// 한 수 물렀다.
+class UndoEvent extends GameEvent {
+  const UndoEvent();
 }
 
 class RotateEvent extends GameEvent {

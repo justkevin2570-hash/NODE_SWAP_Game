@@ -19,6 +19,7 @@ class BoardView extends StatefulWidget {
     required this.onTapCell,
     required this.onSwap,
     this.selected,
+    this.pairCell,
     this.hint,
     this.rotations = 0,
     this.enabled = true,
@@ -31,6 +32,9 @@ class BoardView extends StatefulWidget {
   final SymmetryType target;
   final double size;
   final int? selected;
+
+  /// 선택한 타일의 대칭 짝 칸 (표시만 함).
+  final int? pairCell;
   final Hint? hint;
   final int rotations;
   final bool enabled;
@@ -261,6 +265,7 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
           deep: deep,
           selected: widget.selected == i,
           hinted: widget.hint?.covers(i) ?? false,
+          pairMark: widget.pairCell == i && widget.selected != i,
           dimmed: widget.dimmed,
           entranceDelay: isNew ? Duration(milliseconds: 40 + ((i ~/ 5) + (i % 5)) * 28) : null,
           bumpToken: _bump[id] ?? 0,

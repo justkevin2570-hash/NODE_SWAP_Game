@@ -67,6 +67,7 @@ class GameController extends Notifier<GameSession?> {
       remainingMs: time,
       timeCapMs: mode == GameMode.rush ? Rules.rushTimeCapMs : time,
       hintsLeft: mode == GameMode.rush ? Rules.rushHints : Rules.classicHints(difficulty),
+      undosLeft: mode == GameMode.rush ? Rules.rushUndos : Rules.classicUndos(difficulty),
       countdown: 3,
     );
     _solution = Solver(puzzle.target).solve(puzzle.board, maxDepth: puzzle.maxMoves);
@@ -74,6 +75,7 @@ class GameController extends Notifier<GameSession?> {
     _puzzleElapsed = 0;
     _pendingNext = false;
     _gameId++;
+    _history.clear();
     _hiddenAt = null;
     _ready.clear();
     _preparing.clear();
@@ -178,7 +180,7 @@ class GameController extends Notifier<GameSession?> {
   // ── 입력 ────────────────────────────────────────────────
   void tapCell(int cell) {
     final s = state;
-    if (s == null || !s.canAct) return;
+    if (s == null || !s.canAct || s.stuck) return;
     final sel = s.selected;
     if (sel == null) {
       state = s.copyWith(selected: cell);
@@ -199,7 +201,7 @@ class GameController extends Notifier<GameSession?> {
   /// 드래그로 바로 swap 할 때도 사용.
   void swap(int a, int b) {
     final s = state;
-    if (s == null || !s.canAct || !Board.isAdjacent(a, b)) return;
+    if (s == null || !s.canAct || s.stuck || !Board.isAdjacent(a, b)) return;
     if (s.movesLeft <= 0) {
       _audio.play(Sfx.error);
       return;
@@ -211,6 +213,7 @@ class GameController extends Notifier<GameSession?> {
       _audio.play(Sfx.error);
       return;
     }
+    _history.add((board: s.board, tileIds: s.tileIds, movesUsed: s.movesUsed));
     final before = s.board.matchedCells(s.target);
     final board = s.board.swap(a, b);
     final ids = List.of(s.tileIds);
@@ -224,6 +227,7 @@ class GameController extends Notifier<GameSession?> {
       board: board,
       tileIds: ids,
       movesUsed: s.movesUsed + 1,
+      canUndoMove: true,
       clearSelection: true,
       clearHint: true,
     );
@@ -239,7 +243,7 @@ class GameController extends Notifier<GameSession?> {
 
   void rotate() {
     final s = state;
-    if (s == null || !s.canAct) return;
+    if (s == null || !s.canAct || s.stuck) return;
     final board = s.board.rotateCW();
     final ids = List<int>.filled(Board.cellCount, 0);
     for (int i = 0; i < Board.cellCount; i++) {
@@ -260,7 +264,7 @@ class GameController extends Notifier<GameSession?> {
 
   void useHint() {
     final s = state;
-    if (s == null || !s.canAct || s.hintsLeft <= 0 || s.hint != null) return;
+    if (s == null || !s.canAct || s.stuck || s.hintsLeft <= 0 || s.hint != null) return;
     final sol = _solution ?? Solver(s.target).solve(s.board, maxDepth: s.movesLeft);
     if (sol == null) return;
     final Hint hint;
@@ -314,8 +318,40 @@ class GameController extends Notifier<GameSession?> {
     }
     _solution = Solver(s.target).solve(s.board, maxDepth: s.movesLeft);
     if (_solution == null) {
+      if (s.undosLeft > 0 && _history.isNotEmpty) {
+        // 바로 실패시키지 않고, 되돌리기(또는 러시의 패스)를 기다린다.
+        state = s.copyWith(stuck: true, clearSelection: true, clearHint: true);
+        _emit(const StuckEvent());
+        _audio.play(Sfx.error);
+        _audio.haptic(HapticKind.medium);
+        return;
+      }
       _fail(s.movesLeft <= 0 ? FailReason.outOfMoves : FailReason.stuck);
     }
+  }
+
+  // ── 되돌리기 ─────────────────────────────────────────────
+  final List<({Board board, List<int> tileIds, int movesUsed})> _history = [];
+
+  /// 직전 swap 을 무른다 (이동 수도 돌려받음). 되돌리기 횟수를 하나 쓴다.
+  void undo() {
+    final s = state;
+    if (s == null || !s.canUndo || _history.isEmpty) return;
+    final prev = _history.removeLast();
+    state = s.copyWith(
+      board: prev.board,
+      tileIds: prev.tileIds,
+      movesUsed: prev.movesUsed,
+      undosLeft: s.undosLeft - 1,
+      canUndoMove: _history.isNotEmpty,
+      stuck: false,
+      clearSelection: true,
+      clearHint: true,
+    );
+    _solution = Solver(s.target).solve(prev.board, maxDepth: s.maxMoves - prev.movesUsed);
+    _emit(const UndoEvent());
+    _audio.play(Sfx.whoosh);
+    _audio.haptic(HapticKind.light);
   }
 
   void _clear() {
@@ -439,9 +475,12 @@ class GameController extends Notifier<GameSession?> {
         puzzleSerial: s.puzzleSerial + 1,
         rotations: 0,
         movesUsed: 0,
+        canUndoMove: false,
+        stuck: false,
         clearSelection: true,
         clearHint: true,
       );
+      _history.clear();
       _emit(const NewPuzzleEvent());
       _audio.play(Sfx.whoosh, volume: 0.6);
     } else {

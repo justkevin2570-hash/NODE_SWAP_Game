@@ -21,6 +21,9 @@ abstract final class Rules {
   static const int rushTimeCapMs = 60000;
   static const int rushHints = 3;
 
+  /// 한 판(러시는 한 번의 도전 전체)에 쓸 수 있는 되돌리기 수. 클래식은 [classicUndos].
+  static const int rushUndos = 3;
+
   /// 이동 수를 다 쓰고 실패했을 때 깎이는 시간.
   static const int rushFailPenaltyMs = 5000;
 
@@ -108,6 +111,8 @@ abstract final class Rules {
         Difficulty.normal => 2,
         Difficulty.hard => 1,
       };
+
+  static int classicUndos(Difficulty d) => classicHints(d);
 
   static int classicStars({required int movesUsed, required int par}) {
     if (movesUsed <= par) return 3;

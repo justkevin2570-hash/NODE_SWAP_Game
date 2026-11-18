@@ -8,7 +8,9 @@ import 'package:node_swap_game/game/game_controller.dart';
 import 'package:node_swap_game/game/game_state.dart';
 import 'package:node_swap_game/game/logic/solver.dart';
 import 'package:node_swap_game/ui/screens/game_screen.dart';
+import 'package:node_swap_game/game/logic/board.dart';
 import 'package:node_swap_game/ui/widgets/board_view.dart';
+import 'package:node_swap_game/ui/widgets/tile_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<ProviderContainer> _pumpApp(WidgetTester tester, {Map<String, Object> prefs = const {}}) async {
@@ -384,6 +386,129 @@ void main() {
     expect(scheduled, lessThan(40));
 
     container.read(gameProvider.notifier).quit();
+    await _cleanup(tester);
+  });
+
+  group('되돌리기', () {
+    Future<ProviderContainer> startClassic(WidgetTester tester, String label) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+      await tester.tap(find.text('클래식'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.tap(find.text(label));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pump(const Duration(milliseconds: 2000));
+      return container;
+    }
+
+    /// 지금 보드에서 두면 바로 막히는 swap 을 찾는다.
+    (int, int)? findStuckMove(GameSession s) {
+      for (final (a, b) in Board.adjacentPairs) {
+        if (s.board[a] == s.board[b]) continue;
+        final after = s.board.swap(a, b);
+        if (after.isSymmetric(s.target)) continue;
+        if (Solver(s.target).solve(after, maxDepth: s.movesLeft - 1) == null) return (a, b);
+      }
+      return null;
+    }
+
+    testWidgets('막히면 바로 실패하지 않고, 되돌리기로 살린 뒤 클리어할 수 있다', (tester) async {
+      final container = await startClassic(tester, '어려움'); // 여유 이동 0, 되돌리기 1번
+      final ctrl = container.read(gameProvider.notifier);
+      var s = container.read(gameProvider)!;
+      expect(s.undosLeft, 1);
+      final bad = findStuckMove(s)!;
+      final startBoard = s.board;
+
+      ctrl.swap(bad.$1, bad.$2);
+      await tester.pump(const Duration(milliseconds: 50));
+      s = container.read(gameProvider)!;
+      expect(s.stuck, isTrue);
+      expect(s.phase, Phase.playing);
+      // 막힌 동안에는 타일·회전이 안 된다
+      final frozen = s.board;
+      ctrl.rotate();
+      expect(container.read(gameProvider)!.board, frozen);
+
+      ctrl.undo();
+      s = container.read(gameProvider)!;
+      expect(s.stuck, isFalse);
+      expect(s.board, startBoard);
+      expect(s.movesUsed, 0);
+      expect(s.undosLeft, 0);
+
+      final sol = Solver(s.target).solve(s.board, maxDepth: s.movesLeft)!;
+      for (final (a, b) in sol.swaps) {
+        ctrl.swap(a, b);
+      }
+      if (sol.needsRotation) ctrl.rotate();
+      expect(container.read(gameProvider)!.won, isTrue);
+      await _cleanup(tester);
+    });
+
+    testWidgets('되돌리기를 다 쓰면 막혔을 때 예전처럼 실패한다', (tester) async {
+      final container = await startClassic(tester, '어려움');
+      final ctrl = container.read(gameProvider.notifier);
+      var s = container.read(gameProvider)!;
+      final bad = findStuckMove(s)!;
+      ctrl.swap(bad.$1, bad.$2);
+      ctrl.undo();
+      expect(container.read(gameProvider)!.undosLeft, 0);
+      ctrl.swap(bad.$1, bad.$2);
+      await tester.pump(const Duration(milliseconds: 50));
+      s = container.read(gameProvider)!;
+      expect(s.phase, Phase.over);
+      expect(s.won, isFalse);
+      await _cleanup(tester);
+    });
+
+    testWidgets('막힌 게 아니어도 한 수씩 무를 수 있고, 무를 게 없으면 버튼이 꺼진다', (tester) async {
+      final container = await startClassic(tester, '쉬움'); // 되돌리기 3번
+      final ctrl = container.read(gameProvider.notifier);
+      var s = container.read(gameProvider)!;
+      expect(s.canUndo, isFalse); // 아직 둔 수가 없다
+      final sol = Solver(s.target).solve(s.board)!;
+      final (a, b) = sol.swaps.first;
+      final before = s.board;
+      ctrl.swap(a, b);
+      s = container.read(gameProvider)!;
+      if (s.phase == Phase.over) return _cleanup(tester); // 한 수에 끝나는 판
+      expect(s.canUndo, isTrue);
+      ctrl.undo();
+      s = container.read(gameProvider)!;
+      expect(s.board, before);
+      expect(s.undosLeft, 2);
+      expect(s.canUndo, isFalse);
+      container.read(gameProvider.notifier).quit();
+      await _cleanup(tester);
+    });
+  });
+
+  testWidgets('짝 칸 표시: 타일을 고르면 대칭 짝 칸이 표시되고, 설정으로 끌 수 있다', (tester) async {
+    final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+    await tester.tap(find.text('러시 시작'));
+    await tester.pump();
+    for (int i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final ctrl = container.read(gameProvider.notifier);
+    final s = container.read(gameProvider)!;
+    // 축 위가 아닌 칸을 고른다
+    final cell = List.generate(25, (i) => i).firstWhere((i) => s.target.partnerOf(i) != i);
+    ctrl.tapCell(cell);
+    await tester.pump();
+    int marked() => tester.widgetList<TileView>(find.byType(TileView)).where((t) => t.pairMark).length;
+    expect(marked(), 1);
+
+    container.read(settingsProvider.notifier).setPairPreview(false);
+    await tester.pump();
+    expect(marked(), 0);
+    ctrl.quit();
     await _cleanup(tester);
   });
 }

@@ -103,6 +103,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             if (board != null) particles?.sparkle(board.cellCenterGlobal(c), deep);
           }
         }
+      case StuckEvent():
+        board?.shake();
+        fx?.banner(
+          '막혔어요!',
+          sub: widget.mode == GameMode.rush ? '되돌리기로 한 수 무르거나 패스하세요' : '되돌리기로 한 수 물러 보세요',
+          color: Palette.danger,
+          size: 46,
+          duration: const Duration(milliseconds: 1300),
+        );
+      case UndoEvent():
+        if (board != null) particles?.ring(board.centerGlobal, light, size: 90);
       case InvalidSwapEvent(:final a, :final b):
         board?.nudge(a, b);
       case RotateEvent():
@@ -203,6 +214,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           s.movesUsed,
           s.score,
           (s.combo, s.cleared, s.hintsLeft, s.isFever, s.won, s.puzzleSerial),
+          (s.undosLeft, s.canUndoMove, s.stuck),
         );
 
   @override
@@ -247,6 +259,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   Widget _content(GameSession s) {
     final (light, deep) = Palette.forSymmetry(s.target);
+    final pairPreview = ref.watch(settingsProvider.select((st) => st.pairPreview));
     return LayoutBuilder(builder: (context, c) {
       // c 는 좌우 패딩(16 × 2)을 빼기 전 크기다.
       final boardSize = min(c.maxWidth - 32 - 8, c.maxHeight * 0.56).clamp(220.0, 460.0);
@@ -281,9 +294,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               target: s.target,
               size: boardSize,
               selected: s.selected,
+              pairCell: pairPreview && s.selected != null ? s.target.partnerOf(s.selected!) : null,
               hint: s.hint,
               rotations: s.rotations,
-              enabled: s.canAct,
+              enabled: s.canAct && !s.stuck,
               dimmed: s.phase == Phase.over && !s.won,
               hideTiles: s.phase == Phase.paused,
               onTapCell: _ctrl.tapCell,
@@ -360,10 +374,26 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             height: 74,
             vertical: true,
             sound: null,
-            onPressed: s.canAct && s.hintsLeft > 0 && s.hint == null ? _ctrl.useHint : null,
+            onPressed: s.canAct && !s.stuck && s.hintsLeft > 0 && s.hint == null ? _ctrl.useHint : null,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
+        Expanded(
+          child: BubblyButton(
+            label: '되돌리기',
+            subtitle: '${s.undosLeft}개 남음',
+            icon: Icons.undo_rounded,
+            color: Palette.peach,
+            deep: Palette.peachDeep,
+            fontSize: 17,
+            height: 74,
+            vertical: true,
+            glow: s.stuck && s.canUndo,
+            sound: null,
+            onPressed: s.canUndo ? _ctrl.undo : null,
+          ),
+        ),
+        const SizedBox(width: 8),
         Expanded(
           flex: 2,
           child: KeyedSubtree(
@@ -376,13 +406,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               deep: deep,
               fontSize: 22,
               height: 74,
-              glow: rotateGlow,
+              glow: rotateGlow && !s.stuck,
               sound: null,
-              onPressed: s.canAct ? _ctrl.rotate : null,
+              onPressed: s.canAct && !s.stuck ? _ctrl.rotate : null,
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: widget.mode == GameMode.rush
               ? BubblyButton(
@@ -394,6 +424,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   fontSize: 17,
                   height: 74,
                   vertical: true,
+                  glow: s.stuck,
                   sound: null,
                   onPressed: s.canAct ? _ctrl.skip : null,
                 )

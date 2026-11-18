@@ -160,6 +160,17 @@ class _SettingsSheet extends ConsumerWidget {
             ],
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              const Icon(Icons.compare_arrows_rounded, color: Palette.inkSoft),
+              const SizedBox(width: 10),
+              const Expanded(child: Text('짝 칸 표시 (타일을 고르면 대칭 짝을 보여줘요)', style: TextStyles.body)),
+              Switch(value: s.pairPreview, onChanged: n.setPairPreview),
+            ],
+          ),
+        ),
         const SizedBox(height: 12),
         BubblyButton(
           label: '기록 초기화',

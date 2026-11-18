@@ -14,6 +14,7 @@ class TileView extends StatefulWidget {
     required this.deep,
     this.selected = false,
     this.hinted = false,
+    this.pairMark = false,
     this.dimmed = false,
     this.entranceDelay,
     this.bumpToken = 0,
@@ -29,6 +30,9 @@ class TileView extends StatefulWidget {
   final Color deep;
   final bool selected;
   final bool hinted;
+
+  /// 선택한 타일의 대칭 짝 칸 표시.
+  final bool pairMark;
   final bool dimmed;
 
   /// null 이 아니면 처음 나타날 때 톡 튀어나온다.
@@ -46,12 +50,30 @@ class TileView extends StatefulWidget {
 }
 
 class _TileViewState extends State<TileView> with TickerProviderStateMixin {
-  late final _entrance = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
-  late final _bump = AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
-  late final _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 520));
-  late final _nudge = AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
-  late final _celebrate = AnimationController(vsync: this, duration: const Duration(milliseconds: 620));
-  late final _hint = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+  late final _entrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+  late final _bump = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 260),
+  );
+  late final _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 520),
+  );
+  late final _nudge = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+  );
+  late final _celebrate = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 620),
+  );
+  late final _hint = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
 
   @override
   void initState() {
@@ -98,7 +120,14 @@ class _TileViewState extends State<TileView> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([_entrance, _bump, _pulse, _nudge, _celebrate, _hint]),
+      animation: Listenable.merge([
+        _entrance,
+        _bump,
+        _pulse,
+        _nudge,
+        _celebrate,
+        _hint,
+      ]),
       builder: (context, _) {
         final e = Curves.elasticOut.transform(_entrance.value.clamp(0.0, 1.0));
         // 스왑 직후 말랑하게 찌그러졌다 돌아오는 효과
@@ -108,7 +137,11 @@ class _TileViewState extends State<TileView> with TickerProviderStateMixin {
         // 대칭 쌍이 맞았을 때 톡 커지는 효과
         final p = sin(_pulse.value * pi) * 0.12;
         // 잘못된 조작일 때 좌우로 흔들기
-        final n = sin(_nudge.value * pi * 4) * (1 - _nudge.value) * widget.size * 0.08;
+        final n =
+            sin(_nudge.value * pi * 4) *
+            (1 - _nudge.value) *
+            widget.size *
+            0.08;
         // 클리어 웨이브: 위로 튀고 반 바퀴 돈다
         final c = _celebrate.value;
         final jump = -sin(c * pi) * widget.size * 0.35;
@@ -123,7 +156,12 @@ class _TileViewState extends State<TileView> with TickerProviderStateMixin {
             transform: Matrix4.identity()
               ..setEntry(3, 2, 0.002)
               ..rotateY(spin)
-              ..scaleByDouble(e * sx * selectedLift * hintScale + p, e * sy * selectedLift * hintScale + p, 1, 1),
+              ..scaleByDouble(
+                e * sx * selectedLift * hintScale + p,
+                e * sy * selectedLift * hintScale + p,
+                1,
+                1,
+              ),
             child: _face(c),
           ),
         );
@@ -165,18 +203,36 @@ class _TileViewState extends State<TileView> with TickerProviderStateMixin {
                 ),
           border: showRing
               ? Border.all(color: ringColor, width: s * 0.07)
+              : widget.pairMark
+              ? Border.all(
+                  color: widget.deep.withValues(alpha: 0.85),
+                  width: s * 0.06,
+                )
               : on
-                  ? null
-                  : Border.all(color: Palette.lavender.withValues(alpha: 0.6), width: 2),
+              ? null
+              : Border.all(
+                  color: Palette.lavender.withValues(alpha: 0.6),
+                  width: 2,
+                ),
           boxShadow: [
             BoxShadow(
-              color: (on ? widget.deep : Palette.lavenderDeep).withValues(alpha: on ? 0.42 : 0.16),
+              color: (on ? widget.deep : Palette.lavenderDeep).withValues(
+                alpha: on ? 0.42 : 0.16,
+              ),
               blurRadius: widget.selected ? 18 : 8,
               offset: Offset(0, widget.selected ? 8 : 4),
             ),
+            if (widget.pairMark && !showRing)
+              BoxShadow(
+                color: widget.deep.withValues(alpha: 0.35),
+                blurRadius: 14,
+                spreadRadius: 1,
+              ),
             if (showRing)
               BoxShadow(
-                color: Palette.butterDeep.withValues(alpha: 0.45 + _hint.value * 0.3),
+                color: Palette.butterDeep.withValues(
+                  alpha: 0.45 + _hint.value * 0.3,
+                ),
                 blurRadius: 18,
                 spreadRadius: 1,
               ),

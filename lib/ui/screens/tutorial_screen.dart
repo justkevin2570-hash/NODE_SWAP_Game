@@ -256,6 +256,9 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
             target: _lesson.target,
             size: boardSize,
             selected: _selected,
+            pairCell: ref.watch(settingsProvider.select((st) => st.pairPreview)) && _selected != null
+                ? _lesson.target.partnerOf(_selected!)
+                : null,
             hint: _hint,
             rotations: _rotations,
             enabled: !_solved,
