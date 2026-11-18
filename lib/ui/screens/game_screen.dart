@@ -366,17 +366,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 
   /// 위쪽 작은 버튼: 러시는 패스(-3초), 클래식은 새 퍼즐.
+  /// 평소엔 눈에 덜 띄는 흰 보조 버튼, 막혔을 때만 산호색으로 반짝인다.
+  /// (항상 같은 색이면 상하 대칭 판의 하늘색 테마와 겹치고, 손해 버튼이 주요 버튼처럼 보인다.)
   Widget _corner(GameSession s) {
     final rush = widget.mode == GameMode.rush;
+    final stuck = s.stuck;
     return BubblyButton(
       label: rush ? '패스 -3초' : '새 퍼즐',
       icon: rush ? Icons.fast_forward_rounded : Icons.refresh_rounded,
-      color: Palette.sky,
-      deep: Palette.skyDeep,
+      color: stuck ? Palette.coral : Palette.white,
+      deep: stuck ? Palette.coralDeep : Palette.inkFaint,
+      labelColor: stuck ? Palette.ink : Palette.inkSoft,
       height: 40,
       width: 112,
       fontSize: 14,
-      glow: rush && s.stuck,
+      glow: stuck,
       sound: rush ? null : Sfx.button,
       onPressed: s.canAct ? (rush ? _ctrl.skip : _ctrl.restart) : null,
     );

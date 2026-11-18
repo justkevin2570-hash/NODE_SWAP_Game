@@ -23,6 +23,7 @@ class BubblyButton extends ConsumerStatefulWidget {
     this.glow = false,
     this.sound = Sfx.button,
     this.vertical = false,
+    this.labelColor,
   });
 
   final String label;
@@ -39,6 +40,9 @@ class BubblyButton extends ConsumerStatefulWidget {
 
   /// 아이콘 위, 글자 아래로 쌓는 좁은 버튼.
   final bool vertical;
+
+  /// 글자·아이콘 색 (기본: 진한 잉크색).
+  final Color? labelColor;
 
   @override
   ConsumerState<BubblyButton> createState() => _BubblyButtonState();
@@ -126,7 +130,7 @@ class _BubblyButtonState extends ConsumerState<BubblyButton>
 
   Widget _face(bool enabled) {
     final c = enabled ? widget.color : Color.lerp(widget.color, Colors.white, 0.6)!;
-    final ink = enabled ? Palette.ink : Palette.inkFaint;
+    final ink = enabled ? (widget.labelColor ?? Palette.ink) : Palette.inkFaint;
     final hasLabel = widget.label.isNotEmpty;
     final labelText = Text(
       widget.label,

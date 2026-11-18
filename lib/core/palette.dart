@@ -31,6 +31,10 @@ abstract final class Palette {
   static const white = Color(0xFFFFFFFF);
   static const danger = Color(0xFFFF7A93);
 
+  /// 막혔을 때 패스·새 퍼즐 버튼 색 (테마색과 겹치지 않는 부드러운 빨강).
+  static const coral = Color(0xFFFFADA3);
+  static const coralDeep = Color(0xFFF2706A);
+
   static const blobs = [lavender, mint, peach, pink, sky, butter];
 
   /// 대칭 종류별 테마 색. (밝은 색, 진한 색)
