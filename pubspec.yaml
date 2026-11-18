@@ -1,5 +1,5 @@
 name: node_swap_game
-description: "Node Swap - 파스텔 대칭 퍼즐 러시"
+description: "Symmetry Rush - 파스텔 대칭 퍼즐 러시"
 publish_to: 'none'
 
 version: 2.0.0+2

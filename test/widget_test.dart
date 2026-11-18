@@ -22,7 +22,7 @@ Future<ProviderContainer> _pumpApp(WidgetTester tester, {Map<String, Object> pre
     audioProvider.overrideWithValue(AudioEngine.silent()),
   ]);
   addTearDown(container.dispose);
-  await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const NodeSwapApp()));
+  await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SymmetryRushApp()));
   for (int i = 0; i < 15; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }

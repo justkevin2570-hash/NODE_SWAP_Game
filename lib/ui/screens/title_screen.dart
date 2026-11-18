@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -136,53 +137,78 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
 class _Logo extends StatelessWidget {
   const _Logo();
 
+  // SYMMETRY: 양 끝에서 가운데로 색이 대칭이 되게 배치 (게임 주제를 로고에도)
+  static const _symColors = [
+    (Palette.pink, Palette.pinkDeep),
+    (Palette.sky, Palette.skyDeep),
+    (Palette.mint, Palette.mintDeep),
+    (Palette.lavender, Palette.lavenderDeep),
+  ];
+
+  // RUSH: 속도감 있는 따뜻한 색
+  static const _rushColors = [
+    (Palette.pink, Palette.pinkDeep),
+    (Palette.peach, Palette.peachDeep),
+    (Palette.butter, Palette.butterDeep),
+    (Palette.peach, Palette.peachDeep),
+  ];
+
+  Widget _tile(String ch, double size, (Color, Color) color, int order, {double tilt = 0}) {
+    final (light, deep) = color;
+    return Container(
+      width: size,
+      height: size,
+      margin: EdgeInsets.all(size * 0.07),
+      alignment: Alignment.center,
+      transform: Matrix4.rotationZ(tilt),
+      transformAlignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color.lerp(light, Colors.white, 0.3)!, light],
+        ),
+        borderRadius: BorderRadius.circular(size * 0.31),
+        border: Border.all(color: Colors.white, width: size * 0.045),
+        boxShadow: softShadow(deep, blur: size * 0.2, y: size * 0.1, opacity: 0.45),
+      ),
+      child: Text(ch, style: TextStyle(fontFamily: kFont, fontSize: size * 0.62, color: Palette.ink)),
+    )
+        .animate(delay: (order * 60).ms)
+        .scaleXY(begin: 0, duration: 600.ms, curve: Curves.elasticOut)
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .moveY(begin: 0, end: -size * 0.1, duration: (900 + order * 50).ms, curve: Curves.easeInOut);
+  }
+
   @override
   Widget build(BuildContext context) {
-    const colors = [
-      (Palette.pink, Palette.pinkDeep),
-      (Palette.sky, Palette.skyDeep),
-      (Palette.mint, Palette.mintDeep),
-      (Palette.peach, Palette.peachDeep),
-      (Palette.lavender, Palette.lavenderDeep),
-      (Palette.butter, Palette.butterDeep),
-    ];
-    Widget word(String w, int offset) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (int i = 0; i < w.length; i++)
-              Builder(builder: (context) {
-                final (light, deep) = colors[(i + offset) % colors.length];
-                final idx = i + offset;
-                return Container(
-                  width: 58,
-                  height: 58,
-                  margin: const EdgeInsets.all(4),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color.lerp(light, Colors.white, 0.3)!, light],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white, width: 2.5),
-                    boxShadow: softShadow(deep, blur: 12, y: 6, opacity: 0.45),
-                  ),
-                  child: Text(w[i], style: const TextStyle(fontFamily: kFont, fontSize: 36, color: Palette.ink)),
-                )
-                    .animate(delay: (idx * 70).ms)
-                    .scaleXY(begin: 0, duration: 600.ms, curve: Curves.elasticOut)
-                    .animate(onPlay: (c) => c.repeat(reverse: true))
-                    .moveY(begin: 0, end: -6, duration: (900 + idx * 60).ms, curve: Curves.easeInOut);
-              }),
-          ],
-        );
-    return Column(
-      children: [
-        word('NODE', 0),
-        word('SWAP', 4),
-      ],
-    );
+    return LayoutBuilder(builder: (context, c) {
+      const sym = 'SYMMETRY';
+      const rush = 'RUSH';
+      // 8글자가 한 줄에 들어가도록 화면 너비에 맞춘다 (여백 = 타일의 7% × 2)
+      final small = (c.maxWidth / (sym.length * 1.14)).clamp(28.0, 48.0);
+      final big = (small * 1.55).clamp(40.0, 70.0);
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (int i = 0; i < sym.length; i++)
+                _tile(sym[i], small, _symColors[min(i, sym.length - 1 - i)], i),
+            ],
+          ),
+          SizedBox(height: small * 0.1),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (int i = 0; i < rush.length; i++)
+                _tile(rush[i], big, _rushColors[i], sym.length + i, tilt: i.isEven ? -0.06 : 0.06),
+            ],
+          ),
+        ],
+      );
+    });
   }
 }
 

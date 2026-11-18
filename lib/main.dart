@@ -16,6 +16,6 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   runApp(ProviderScope(
     overrides: [prefsProvider.overrideWithValue(prefs)],
-    child: const NodeSwapApp(),
+    child: const SymmetryRushApp(),
   ));
 }
