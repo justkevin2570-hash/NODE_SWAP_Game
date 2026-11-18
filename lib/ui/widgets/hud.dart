@@ -213,7 +213,20 @@ class SymmetryBadge extends StatelessWidget {
           children: [
             SymmetryIcon(type: type, color: deep, size: compact ? 16 : 20),
             const SizedBox(width: 6),
-            Text(type.label, style: TextStyle(fontFamily: kFont, fontSize: compact ? 14 : 17, color: Palette.ink)),
+            if (type.formula == null)
+              Text(type.label, style: TextStyle(fontFamily: kFont, fontSize: compact ? 14 : 17, color: Palette.ink))
+            else
+              // 식 부분은 테마 색으로 조금 크게, "대칭"은 다른 대칭 칩과 같은 모양으로
+              Text.rich(
+                TextSpan(children: [
+                  TextSpan(
+                    text: type.formula,
+                    style: TextStyle(fontSize: compact ? 15 : 18.5, color: Color.lerp(deep, Palette.ink, 0.6)),
+                  ),
+                  const TextSpan(text: ' 대칭'),
+                ]),
+                style: TextStyle(fontFamily: kFont, fontSize: compact ? 14 : 17, color: Palette.ink, height: 1.1),
+              ),
           ],
         ),
       ),

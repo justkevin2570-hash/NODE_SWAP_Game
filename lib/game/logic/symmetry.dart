@@ -5,10 +5,10 @@ enum SymmetryType {
   point('점대칭', '180° 돌려도 똑같이'),
 
   /// y = x : 왼쪽 아래 → 오른쪽 위 대각선(↗)
-  diagonalUp('y=x 대칭', '↗ 대각선을 기준으로 똑같이'),
+  diagonalUp('y = x 대칭', '오른쪽 위로 가는 대각선을 기준으로 똑같이'),
 
   /// y = −x : 왼쪽 위 → 오른쪽 아래 대각선(↘)
-  diagonalDown('y=−x 대칭', '↘ 대각선을 기준으로 똑같이');
+  diagonalDown('y = -x 대칭', '오른쪽 아래로 가는 대각선을 기준으로 똑같이');
 
   const SymmetryType(this.label, this.description);
 
@@ -23,6 +23,14 @@ enum SymmetryType {
         SymmetryType.point => SymmetryType.point,
         SymmetryType.diagonalUp => SymmetryType.diagonalDown,
         SymmetryType.diagonalDown => SymmetryType.diagonalUp,
+      };
+
+  /// 대각선 대칭의 식 부분 ("y = x" 등). 대각선이 아니면 null.
+  /// 글꼴(Jua)에 없는 수학 기호(−, ↗, ↘)는 쓰지 않는다. 대신 다른 글꼴로 그려져서 어색해 보인다.
+  String? get formula => switch (this) {
+        SymmetryType.diagonalUp => 'y = x',
+        SymmetryType.diagonalDown => 'y = -x',
+        _ => null,
       };
 
   /// 대각선 대칭인지.
