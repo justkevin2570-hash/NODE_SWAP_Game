@@ -50,6 +50,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _ctrl = ref.read(gameProvider.notifier);
     _sub = _ctrl.events.listen(_onEvent);
     _lifecycle = AppLifecycleListener(
+      // 포커스만 잃어도(화면 분할, 알림창) 일시정지. 자리 비움 시간은 화면에서 사라졌을 때부터 잰다.
+      onInactive: _ctrl.pause,
       onHide: _ctrl.appHidden,
       onPause: _ctrl.appHidden,
       onShow: _ctrl.appShown,

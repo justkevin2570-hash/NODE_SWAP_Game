@@ -103,13 +103,14 @@ class AudioEngine {
   @visibleForTesting
   bool get debugInBackground => _background;
 
-  /// 앱이 화면에서 사라지면 음악을 멈추고, 돌아오면 이어서 재생한다.
+  /// 앱이 화면에서 사라지거나 포커스를 잃으면(화면 분할에서 다른 앱 선택, 알림창, 전화 화면)
+  /// 음악을 멈추고, 다시 앱으로 돌아와 포커스를 되찾으면 이어서 재생한다.
   void attachLifecycle() {
     if (!enabled || _lifecycle != null) return;
     _lifecycle = AppLifecycleListener(
+      onInactive: _enterBackground,
       onHide: _enterBackground,
       onPause: _enterBackground,
-      onShow: _leaveBackground,
       onResume: _leaveBackground,
     );
   }
@@ -177,6 +178,9 @@ class AudioEngine {
     try {
       final p = AudioPlayer(playerId: 'music_${m.name}');
       await p.setReleaseMode(ReleaseMode.loop);
+      // 배경음악은 오디오 포커스를 가져간다: 다른 앱(유튜브·음악 앱)이 소리를 내면 알아서 멈추고,
+      // 전화처럼 잠깐 끼어든 소리가 끝나면 다시 이어진다. (효과음은 포커스를 건드리지 않음)
+      await p.setAudioContext(AudioContextConfig(focus: AudioContextConfigFocus.gain).build());
       await p.setSource(AssetSource('audio/music/${m.file}.wav'));
       await p.setVolume(0);
       _music[m] = p;
@@ -266,7 +270,9 @@ class AudioEngine {
         await nextPlayer.resume();
       } catch (_) {}
     }
-    _fadeTo(next, fade);
+    // 게임 중 곡 전환(기본·긴장·피버)은 재생 위치가 맞춰져 있어 바로 바꾼다.
+    // (안드로이드는 새 곡이 포커스를 가져가는 순간 이전 곡이 멈춰서, 크로스페이드하면 소리가 잠깐 비어 버린다.)
+    _fadeTo(next, prev.isGameLayer && next.isGameLayer ? Duration.zero : fade);
   }
 
   void _fadeTo(Music target, Duration fade) {

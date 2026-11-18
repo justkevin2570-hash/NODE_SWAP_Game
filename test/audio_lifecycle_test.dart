@@ -34,4 +34,13 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     engine.dispose();
   });
+
+  testWidgets('포커스만 잃어도(화면 분할, 알림창) 멈추고, 포커스를 되찾으면 다시 낸다', (tester) async {
+    final engine = AudioEngine()..attachLifecycle();
+    addTearDown(engine.dispose);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    expect(engine.debugInBackground, isTrue);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    expect(engine.debugInBackground, isFalse);
+  });
 }

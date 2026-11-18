@@ -325,6 +325,20 @@ void main() {
       await _cleanup(tester);
     });
 
+    testWidgets('포커스만 잃어도(화면 분할, 알림창) 게임이 멈추고 시간이 흐르지 않는다', (tester) async {
+      final container = await startRush(tester);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      final s = container.read(gameProvider)!;
+      expect(s.phase, Phase.paused);
+      await tester.pump(const Duration(seconds: 10));
+      expect(container.read(gameProvider)!.remainingMs, s.remainingMs);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(find.text('잠깐 쉬어요'), findsOneWidget);
+      container.read(gameProvider.notifier).quit();
+      await _cleanup(tester);
+    });
+
     testWidgets('클래식: 오래 비워도 끝내지 않는다', (tester) async {
       final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
       await tester.tap(find.text('클래식'));
