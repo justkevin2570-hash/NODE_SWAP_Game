@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/palette.dart';
@@ -21,15 +23,52 @@ class PastelBackground extends StatefulWidget {
   State<PastelBackground> createState() => _PastelBackgroundState();
 }
 
-class _PastelBackgroundState extends State<PastelBackground>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl =
-      AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
+class _PastelBackgroundState extends State<PastelBackground> {
+  // 블롭은 아주 느리게 움직여서 매 프레임(60fps) 그릴 필요가 없다.
+  // 초당 12번(피버 중 24번)만 다시 그려 배터리를 아낀다.
+  static const _period = Duration(seconds: 60);
+  final _phase = ValueNotifier<double>(0);
+  final _clock = Stopwatch()..start();
+  Timer? _timer;
+  bool _active = true;
   final _blobs = List.generate(7, (i) => _Blob(Random(i * 31 + 7)));
 
   @override
+  void initState() {
+    super.initState();
+    _restartTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 다른 화면에 가려져 있으면(TickerMode 꺼짐) 멈춘다.
+    final active = TickerMode.valuesOf(context).enabled;
+    if (active != _active) {
+      _active = active;
+      _restartTimer();
+    }
+  }
+
+  @override
+  void didUpdateWidget(PastelBackground oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fever != widget.fever) _restartTimer();
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    if (!_active) return;
+    final fps = widget.fever ? 24 : 12;
+    _timer = Timer.periodic(Duration(milliseconds: 1000 ~/ fps), (_) {
+      _phase.value = (_clock.elapsedMilliseconds % _period.inMilliseconds) / _period.inMilliseconds;
+    });
+  }
+
+  @override
   void dispose() {
-    _ctrl.dispose();
+    _timer?.cancel();
+    _phase.dispose();
     super.dispose();
   }
 
@@ -55,11 +94,8 @@ class _PastelBackgroundState extends State<PastelBackground>
           ),
         ),
         RepaintBoundary(
-          child: AnimatedBuilder(
-            animation: _ctrl,
-            builder: (context, _) => CustomPaint(
-              painter: _BlobPainter(_blobs, _ctrl.value, widget.fever, widget.tint),
-            ),
+          child: CustomPaint(
+            painter: _BlobPainter(_blobs, _phase, widget.fever, widget.tint),
           ),
         ),
         widget.child,
@@ -82,10 +118,11 @@ class _Blob {
 }
 
 class _BlobPainter extends CustomPainter {
-  _BlobPainter(this.blobs, this.t, this.fever, this.tint);
+  _BlobPainter(this.blobs, this.phase, this.fever, this.tint) : super(repaint: phase);
 
   final List<_Blob> blobs;
-  final double t;
+  final ValueListenable<double> phase;
+  double get t => phase.value;
   final bool fever;
   final Color? tint;
 
@@ -118,5 +155,6 @@ class _BlobPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BlobPainter old) => true;
+  bool shouldRepaint(_BlobPainter old) =>
+      old.fever != fever || old.tint != tint || old.phase != phase;
 }

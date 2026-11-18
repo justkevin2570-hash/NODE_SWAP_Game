@@ -82,7 +82,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   children: [
                     const Spacer(),
                     Text(
-                      s.mode == GameMode.rush ? '러시 모드' : '클래식 · ${s.difficulty.label}',
+                      s.mode == GameMode.rush ? '러시 모드' : '클래식 | ${s.difficulty.label}',
                       style: TextStyles.caption.copyWith(fontSize: 16),
                     ).animate().fadeIn(),
                     const SizedBox(height: 8),

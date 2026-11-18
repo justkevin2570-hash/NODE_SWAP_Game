@@ -98,5 +98,5 @@ class Board {
 
   @override
   String toString() =>
-      toRows().map((row) => row.map((v) => v == 1 ? '■' : '□').join()).join('\n');
+      toRows().map((row) => row.map((v) => v == 1 ? '#' : '.').join()).join('\n');
 }

@@ -27,8 +27,32 @@ class TimerBar extends StatefulWidget {
 }
 
 class _TimerBarState extends State<TimerBar> with SingleTickerProviderStateMixin {
-  late final _beat = AnimationController(vsync: this, duration: const Duration(milliseconds: 500))
-    ..repeat(reverse: true);
+  // 맥박은 시간이 얼마 안 남았을 때만 돌린다 (평소엔 멈춰 있어 화면을 다시 그리지 않음).
+  late final _beat = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+
+  bool get _critical => widget.remainingMs <= 10000 && !widget.fever;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncBeat();
+  }
+
+  @override
+  void didUpdateWidget(TimerBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncBeat();
+  }
+
+  void _syncBeat() {
+    if (_critical && !_beat.isAnimating) {
+      _beat.repeat(reverse: true);
+    } else if (!_critical && _beat.isAnimating) {
+      _beat
+        ..stop()
+        ..value = 0;
+    }
+  }
 
   @override
   void dispose() {
@@ -83,8 +107,8 @@ class _TimerBarState extends State<TimerBar> with SingleTickerProviderStateMixin
                     final f = widget.fever ? widget.feverFraction : widget.fraction;
                     return Align(
                       alignment: Alignment.centerLeft,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 120),
+                      // 0.1초마다 갱신되므로 따로 애니메이션을 주지 않는다 (계속 다시 그리는 것 방지)
+                      child: Container(
                         width: max(12.0, c.maxWidth * f),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(colors: colors),

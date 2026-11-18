@@ -60,9 +60,9 @@ class _ClassicSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final records = ref.watch(recordsProvider);
     final rows = [
-      (Difficulty.easy, Palette.mint, Palette.mintDeep, '여유 이동 +2 · 90초'),
-      (Difficulty.normal, Palette.sky, Palette.skyDeep, '여유 이동 +1 · 60초'),
-      (Difficulty.hard, Palette.pink, Palette.pinkDeep, '최소 이동만 · 45초'),
+      (Difficulty.easy, Palette.mint, Palette.mintDeep, '여유 이동 +2, 90초'),
+      (Difficulty.normal, Palette.sky, Palette.skyDeep, '여유 이동 +1, 60초'),
+      (Difficulty.hard, Palette.pink, Palette.pinkDeep, '최소 이동만, 45초'),
     ];
     return Column(
       mainAxisSize: MainAxisSize.min,

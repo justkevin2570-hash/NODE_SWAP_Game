@@ -124,9 +124,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         String? sub;
         if (widget.mode == GameMode.classic) {
           title = 'CLEAR!';
-          sub = perfect ? 'PERFECT · 최소 이동!' : null;
+          sub = perfect ? 'PERFECT! 최소 이동' : null;
         } else if (combo >= 2) {
-          title = 'COMBO ×$combo';
+          title = 'COMBO x$combo';
           sub = perfect ? 'PERFECT!' : (fast ? 'FAST!' : null);
         } else {
           title = perfect ? 'PERFECT!' : (fast ? 'FAST!' : 'NICE!');
@@ -141,7 +141,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         };
         fx?.banner(
           title,
-          sub: penaltyMs > 0 ? '−${penaltyMs ~/ 1000}초 · 새 퍼즐' : '다시 도전해 봐요',
+          sub: penaltyMs > 0 ? '-${penaltyMs ~/ 1000}초, 새 퍼즐' : '다시 도전해 봐요',
           color: reason == FailReason.skipped ? Palette.skyDeep : Palette.danger,
           size: 48,
           duration: const Duration(milliseconds: 900),
@@ -149,7 +149,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       case FeverEvent(:final started):
         if (started) {
           fx?.banner('FEVER TIME!',
-              sub: '시간 정지 · 점수 2배', color: Palette.butterDeep, size: 58, duration: const Duration(milliseconds: 1500), dy: 0.25);
+              sub: '시간 정지 + 점수 2배', color: Palette.butterDeep, size: 58, duration: const Duration(milliseconds: 1500), dy: 0.25);
           particles?.confetti(count: 70);
         } else {
           fx?.floatText('피버 끝!', _centerOf(_timerKey), color: Palette.inkSoft, size: 20);
@@ -314,7 +314,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         Column(
           key: _scoreKey,
           children: [
-            Text(widget.mode == GameMode.rush ? 'SCORE' : '클래식 · ${widget.difficulty.label}',
+            Text(widget.mode == GameMode.rush ? 'SCORE' : '클래식 | ${widget.difficulty.label}',
                 style: TextStyles.caption),
             RollingNumber(
               value: s.score,
@@ -367,7 +367,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           child: KeyedSubtree(
             key: _rotateKey,
             child: BubblyButton(
-              label: '회전 90°',
+              label: '90도 회전',
               subtitle: '무료',
               icon: Icons.rotate_right_rounded,
               color: light,
@@ -385,7 +385,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           child: widget.mode == GameMode.rush
               ? BubblyButton(
                   label: '패스',
-                  subtitle: '−3초',
+                  subtitle: '-3초',
                   icon: Icons.fast_forward_rounded,
                   color: Palette.sky,
                   deep: Palette.skyDeep,
@@ -418,16 +418,18 @@ class _LiveTimerBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 게임 시계는 50ms 마다 바뀌지만, 막대는 0.1초 단위면 충분하다.
     final t = ref.watch(gameProvider.select((s) => s == null
         ? null
-        : (s.timeFraction, s.remainingMs, s.isFever, s.feverMs / Rules.feverDurationMs)));
+        : (s.remainingMs ~/ 100, s.timeCapMs, s.isFever, s.feverMs ~/ 100)));
     if (t == null) return const SizedBox(height: 24);
-    final (fraction, remainingMs, fever, feverFraction) = t;
+    final (tenths, cap, fever, feverTenths) = t;
+    final remainingMs = tenths * 100;
     return TimerBar(
-      fraction: fraction,
+      fraction: (remainingMs / cap).clamp(0.0, 1.0),
       remainingMs: remainingMs,
       fever: fever,
-      feverFraction: feverFraction,
+      feverFraction: (feverTenths * 100 / Rules.feverDurationMs).clamp(0.0, 1.0),
     );
   }
 }
@@ -464,7 +466,7 @@ class _ComboChip extends StatelessWidget {
                 boxShadow: softShadow(Palette.pinkDeep, blur: 10, y: 4, opacity: 0.3),
               ),
               child: Text(
-                fever ? 'FEVER ×${_fmtMult(mult)}' : '$combo COMBO ×${_fmtMult(mult)}',
+                fever ? 'FEVER x${_fmtMult(mult)}' : '$combo COMBO x${_fmtMult(mult)}',
                 style: TextStyle(fontFamily: kFont, fontSize: 15, color: fever ? Colors.white : Palette.ink),
               ),
             ).animate(onPlay: (c) => c.repeat(reverse: true)).scaleXY(end: 1.06, duration: 450.ms),

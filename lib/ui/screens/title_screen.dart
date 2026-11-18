@@ -76,7 +76,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                     const Spacer(),
                     const _Logo(),
                     const SizedBox(height: 10),
-                    Text('밀고 · 돌리고 · 대칭을 완성하세요!',
+                    Text('밀고, 돌리고, 대칭을 완성하세요!',
                             style: TextStyles.body.copyWith(color: Palette.inkSoft, fontSize: 17))
                         .animate()
                         .fadeIn(delay: 700.ms),
@@ -86,7 +86,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                     BubblyButton(
                       label: '러시 시작',
                       subtitle: records.rushBestScore > 0
-                          ? '최고 ${RollingNumber.formatInt(records.rushBestScore)}점 · ${records.rushBestStage}스테이지'
+                          ? '최고 ${RollingNumber.formatInt(records.rushBestScore)}점 (${records.rushBestStage}스테이지)'
                           : '60초 동안 최대한 많이!',
                       icon: Icons.bolt_rounded,
                       color: Palette.pink,

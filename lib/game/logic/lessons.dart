@@ -49,7 +49,7 @@ final lessons = <Lesson>[
   ),
   Lesson(
     title: '밀어서 맞추기',
-    body: '타일을 옆으로 쭉 밀어도 바로 바뀌어요.\n점대칭은 가운데 점을 중심으로 180° 돌려도 똑같은 모양이에요.',
+    body: '타일을 옆으로 쭉 밀어도 바로 바뀌어요.\n점대칭은 가운데 점을 중심으로 180도 돌려도 똑같은 모양이에요.',
     target: SymmetryType.point,
     board: Board.fromRows(const [
       [1, 0, 0, 1, 1],

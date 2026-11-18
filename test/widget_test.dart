@@ -349,4 +349,27 @@ void main() {
       await _cleanup(tester);
     });
   });
+
+  testWidgets('배터리: 가만히 있을 때 화면을 매 프레임 다시 그리지 않는다', (tester) async {
+    final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+    await tester.tap(find.text('러시 시작'));
+    await tester.pump();
+    for (int i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 100)); // 카운트다운·등장 연출이 끝날 때까지
+    }
+    expect(container.read(gameProvider)!.phase, Phase.playing);
+
+    // 1초 동안 10ms 간격으로, 다음 프레임 요청이 있는지 센다 (매 프레임 애니메이션이면 ~100)
+    var scheduled = 0;
+    for (int i = 0; i < 100; i++) {
+      if (tester.binding.hasScheduledFrame) scheduled++;
+      await tester.pump(const Duration(milliseconds: 10));
+    }
+    // ignore: avoid_print
+    print('1초 동안 프레임 요청: $scheduled / 100');
+    expect(scheduled, lessThan(40));
+
+    container.read(gameProvider.notifier).quit();
+    await _cleanup(tester);
+  });
 }
