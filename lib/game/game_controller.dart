@@ -13,6 +13,7 @@ import 'logic/generator.dart';
 import 'logic/rules.dart';
 import 'logic/solver.dart';
 import 'logic/stages.dart';
+import 'logic/symmetry.dart';
 
 /// 게임 한 판의 진행을 담당한다. 상태는 [GameSession], 연출은 [events] 로 알린다.
 class GameController extends Notifier<GameSession?> {
@@ -39,6 +40,14 @@ class GameController extends Notifier<GameSession?> {
   int _phaseAcc = 0; // 카운트다운·전환 단계에서 흐른 시간
   int _puzzleElapsed = 0; // 현재 퍼즐을 푸는 데 걸린 시간
   Solution? _solution; // 현재 보드의 최적 풀이 (힌트·막힘 판정용)
+
+  /// 이동 직후 바로(UI 스레드에서) 풀이를 찾을 때 탐색할 최대 노드 수.
+  /// 5×5 는 거의 항상 이 안에서 끝나고, 7×7·9×9 에서 못 끝나면 백그라운드에서 이어서 판정한다.
+  static const _quickNodes = 20000;
+  static const _backgroundNodes = 4000000;
+  int _solveSerial = 0; // 보드가 바뀔 때마다 증가 → 늦게 온 백그라운드 결과를 버린다
+  bool _solving = false; // 백그라운드 판정 중
+  bool _hintWanted = false; // 판정이 끝나면 힌트를 보여 줄지
   bool _pendingNext = false; // 전환이 끝나면 새 퍼즐로 갈지
 
   AudioEngine get _audio => ref.read(audioProvider);
@@ -55,27 +64,27 @@ class GameController extends Notifier<GameSession?> {
   // ── 시작 ────────────────────────────────────────────────
   /// 새 판을 시작한다. 클래식은 [stage]탄(1~100) 퍼즐로 시작한다.
   /// [puzzle] 을 직접 주면 그 퍼즐로 한다 (테스트용).
-  void start(GameMode mode, {Difficulty difficulty = Difficulty.normal, int? stage, Puzzle? puzzle}) {
+  void start(GameMode mode, {BoardSize boardSize = BoardSize.five, int? stage, Puzzle? puzzle}) {
     if (mode == GameMode.classic && stage == null && puzzle == null) stage = 1;
     puzzle = mode == GameMode.rush
         ? _generator.generate(Rules.rushSpec(1))
-        : puzzle ?? stagePuzzle(difficulty, stage!);
-    final time = mode == GameMode.rush ? Rules.rushStartMs : Rules.classicTimeMs(difficulty);
+        : puzzle ?? stagePuzzle(boardSize, stage!);
+    final time = mode == GameMode.rush ? Rules.rushStartMs : Rules.classicTimeMs(boardSize);
     state = GameSession(
       mode: mode,
-      difficulty: difficulty,
+      boardSize: boardSize,
       puzzle: puzzle,
       board: puzzle.board,
-      tileIds: List.generate(Board.cellCount, (i) => i),
+      tileIds: List.generate(puzzle.board.cellCount, (i) => i),
       phase: Phase.countdown,
       remainingMs: time,
       timeCapMs: mode == GameMode.rush ? Rules.rushTimeCapMs : time,
-      hintsLeft: mode == GameMode.rush ? Rules.rushHints : Rules.classicHints(difficulty),
-      undosLeft: mode == GameMode.rush ? Rules.rushUndos : Rules.classicUndos(difficulty),
+      hintsLeft: mode == GameMode.rush ? Rules.rushHints : Rules.classicHints(stage ?? 1),
+      undosLeft: mode == GameMode.rush ? Rules.rushUndos : Rules.classicUndos(stage ?? 1),
       countdown: 3,
       stageNumber: mode == GameMode.classic ? stage : null,
     );
-    _solution = Solver(puzzle.target).solve(puzzle.board, maxDepth: puzzle.maxMoves);
+    _analyze();
     _phaseAcc = 0;
     _puzzleElapsed = 0;
     _pendingNext = false;
@@ -95,6 +104,7 @@ class GameController extends Notifier<GameSession?> {
   }
 
   void quit() {
+    _invalidateSolution();
     _timer?.cancel();
     _timer = null;
     state = null;
@@ -194,7 +204,7 @@ class GameController extends Notifier<GameSession?> {
     } else if (sel == cell) {
       state = s.copyWith(clearSelection: true);
       _audio.play(Sfx.tap, volume: 0.6);
-    } else if (Board.isAdjacent(sel, cell)) {
+    } else if (s.board.isAdjacent(sel, cell)) {
       swap(sel, cell);
     } else {
       state = s.copyWith(selected: cell);
@@ -206,7 +216,7 @@ class GameController extends Notifier<GameSession?> {
   /// 드래그로 바로 swap 할 때도 사용.
   void swap(int a, int b) {
     final s = state;
-    if (s == null || !s.canAct || s.stuck || !Board.isAdjacent(a, b)) return;
+    if (s == null || !s.canAct || s.stuck || !s.board.isAdjacent(a, b)) return;
     if (s.movesLeft <= 0) {
       _audio.play(Sfx.error);
       return;
@@ -219,6 +229,12 @@ class GameController extends Notifier<GameSession?> {
       return;
     }
     _history.add((board: s.board, tileIds: s.tileIds, movesUsed: s.movesUsed));
+    // 최적 풀이대로 뒀다면 나머지 풀이가 그대로 최적이다 (다시 계산할 필요 없음).
+    final sol = _solution;
+    final followed = sol != null &&
+        sol.swaps.isNotEmpty &&
+        {sol.swaps.first.$1, sol.swaps.first.$2}.containsAll([a, b]);
+    final known = followed ? Solution(sol.swaps.sublist(1), needsRotation: sol.needsRotation) : null;
     final before = s.board.matchedCells(s.target);
     final board = s.board.swap(a, b);
     final ids = List.of(s.tileIds);
@@ -243,17 +259,26 @@ class GameController extends Notifier<GameSession?> {
       final progress = board.symmetryProgress(s.target);
       _audio.play(Sfx.match((progress * 6).round()));
     }
-    _afterMove();
+    _afterMove(known: known);
   }
 
   void rotate() {
     final s = state;
     if (s == null || !s.canAct || s.stuck) return;
     final board = s.board.rotateCW();
-    final ids = List<int>.filled(Board.cellCount, 0);
-    for (int i = 0; i < Board.cellCount; i++) {
-      ids[Board.rotatedIndex(i)] = s.tileIds[i];
+    final grid = board.grid;
+    final ids = List<int>.filled(grid.cellCount, 0);
+    for (int i = 0; i < grid.cellCount; i++) {
+      ids[grid.rotatedIndex(i)] = s.tileIds[i];
     }
+    // 회전은 풀 수 있는지를 바꾸지 않는다: 지금 풀이를 같이 돌려 쓴다.
+    final sol = _solution;
+    final known = sol == null
+        ? null
+        : Solution(
+            [for (final (a, b) in sol.swaps) (grid.rotatedIndex(a), grid.rotatedIndex(b))],
+            needsRotation: s.target.rotated != s.target && !sol.needsRotation,
+          );
     state = s.copyWith(
       board: board,
       tileIds: ids,
@@ -264,14 +289,18 @@ class GameController extends Notifier<GameSession?> {
     _emit(const RotateEvent());
     _audio.play(Sfx.rotate);
     _audio.haptic(HapticKind.light);
-    _afterMove();
+    _afterMove(known: known);
   }
 
   void useHint() {
     final s = state;
     if (s == null || !s.canAct || s.stuck || s.hintsLeft <= 0 || s.hint != null) return;
-    final sol = _solution ?? Solver(s.target).solve(s.board, maxDepth: s.movesLeft);
-    if (sol == null) return;
+    final sol = _solution;
+    if (sol == null) {
+      // 아직 계산 중이면 끝나는 대로 보여 준다.
+      if (_solving) _hintWanted = true;
+      return;
+    }
     final Hint hint;
     if (sol.swaps.isEmpty) {
       hint = const Hint.rotate();
@@ -305,6 +334,10 @@ class GameController extends Notifier<GameSession?> {
     state = s.copyWith(phase: s.pausedFrom ?? Phase.playing);
     _lastTick = _clock.elapsedMilliseconds;
     _audio.duck(false);
+    if (_stuckPending) {
+      _stuckPending = false;
+      _onStuck();
+    }
   }
 
   /// 처음부터: 클래식은 같은 퍼즐을 처음부터, 러시는 새 도전(60초)으로.
@@ -314,32 +347,89 @@ class GameController extends Notifier<GameSession?> {
     _audio.duck(false);
     start(
       s.mode,
-      difficulty: s.difficulty,
+      boardSize: s.boardSize,
       stage: s.stageNumber,
       puzzle: s.mode == GameMode.classic && s.stageNumber == null ? s.puzzle : null,
     );
   }
 
   // ── 판정 ────────────────────────────────────────────────
-  void _afterMove() {
+  void _afterMove({Solution? known}) {
     final s = state!;
     if (s.board.isSymmetric(s.target)) {
+      _invalidateSolution();
       _clear();
       return;
     }
-    _solution = Solver(s.target).solve(s.board, maxDepth: s.movesLeft);
-    if (_solution == null) {
-      if (s.undosLeft > 0 && _history.isNotEmpty) {
-        // 바로 실패시키지 않고, 되돌리기(또는 러시의 패스)를 기다린다.
-        state = s.copyWith(stuck: true, clearSelection: true, clearHint: true);
-        _emit(const StuckEvent());
-        _audio.play(Sfx.error);
-        _audio.haptic(HapticKind.medium);
-        return;
-      }
-      _fail(s.movesLeft <= 0 ? FailReason.outOfMoves : FailReason.stuck);
+    if (known != null) {
+      _invalidateSolution();
+      _solution = known;
+      return;
     }
+    if (!_analyze()) return; // 백그라운드에서 이어서 판정
+    if (_solution == null) _onStuck();
   }
+
+  /// 지금 보드의 풀이를 다시 구한다. 결과를 바로 알면 true, 백그라운드로 넘겼으면 false.
+  bool _analyze() {
+    final s = state!;
+    _invalidateSolution();
+    final solver = Solver(s.target);
+    final sol = solver.solve(s.board, maxDepth: s.movesLeft, maxNodes: _quickNodes);
+    if (!solver.gaveUp) {
+      _solution = sol;
+      return true;
+    }
+    final serial = _solveSerial;
+    _solving = true;
+    compute(_solveJob, (s.board.code, s.target.index, s.movesLeft)).then((result) {
+      if (serial != _solveSerial) return; // 그 사이 보드가 바뀌었다
+      final (sol, gaveUp) = result;
+      _solving = false;
+      _solution = sol;
+      final cur = state;
+      if (cur == null || cur.phase == Phase.over) return;
+      if (sol == null) {
+        // 끝까지 못 따져 봤으면 막혔다고 단정하지 않는다 (이동을 다 쓰면 그때 판정된다).
+        if (!gaveUp && !cur.stuck) _onStuck();
+      } else if (_hintWanted) {
+        _hintWanted = false;
+        useHint();
+      }
+    }, onError: (_) {
+      if (serial == _solveSerial) _solving = false;
+    });
+    return false;
+  }
+
+  void _invalidateSolution() {
+    _solveSerial++;
+    _stuckPending = false;
+    _solution = null;
+    _solving = false;
+    _hintWanted = false;
+  }
+
+  /// 남은 이동으로는 더 풀 수 없다.
+  void _onStuck() {
+    final s = state!;
+    if (s.phase == Phase.paused) {
+      _stuckPending = true; // 일시정지 중에 판정이 끝났다 → 다시 시작할 때 알린다
+      return;
+    }
+    if (s.phase != Phase.playing) return;
+    if (s.undosLeft > 0 && _history.isNotEmpty) {
+      // 바로 실패시키지 않고, 되돌리기(또는 러시의 패스)를 기다린다.
+      state = s.copyWith(stuck: true, clearSelection: true, clearHint: true);
+      _emit(const StuckEvent());
+      _audio.play(Sfx.error);
+      _audio.haptic(HapticKind.medium);
+      return;
+    }
+    _fail(s.movesLeft <= 0 ? FailReason.outOfMoves : FailReason.stuck);
+  }
+
+  bool _stuckPending = false;
 
   // ── 되돌리기 ─────────────────────────────────────────────
   final List<({Board board, List<int> tileIds, int movesUsed})> _history = [];
@@ -359,7 +449,7 @@ class GameController extends Notifier<GameSession?> {
       clearSelection: true,
       clearHint: true,
     );
-    _solution = Solver(s.target).solve(prev.board, maxDepth: s.maxMoves - prev.movesUsed);
+    _analyze();
     _emit(const UndoEvent());
     _audio.play(Sfx.whoosh);
     _audio.haptic(HapticKind.light);
@@ -374,21 +464,26 @@ class GameController extends Notifier<GameSession?> {
     if (s.mode == GameMode.classic) {
       final stars = Rules.classicStars(movesUsed: s.movesUsed, par: s.puzzle.par);
       final score = Rules.classicScore(
-        difficulty: s.difficulty,
+        boardSize: s.boardSize,
         movesUsed: s.movesUsed,
         maxMoves: s.maxMoves,
         remainingMs: s.remainingMs,
         stars: stars,
       );
+      final nextSize = s.boardSize.index + 1 < BoardSize.values.length ? BoardSize.values[s.boardSize.index + 1] : null;
+      bool sizeOpen() => nextSize != null && ref.read(stageProgressProvider).isSizeUnlocked(nextSize);
+      final wasOpen = sizeOpen();
       final gain = s.stageNumber == null
           ? 0
-          : ref.read(stageProgressProvider.notifier).record(s.difficulty, s.stageNumber!, stars);
+          : ref.read(stageProgressProvider.notifier).record(s.boardSize, s.stageNumber!, stars);
+      final unlocked = !wasOpen && sizeOpen() ? nextSize : null;
       state = s.copyWith(
         phase: Phase.over,
         won: true,
         stars: stars,
         score: score,
         starGain: gain,
+        unlockedSize: unlocked,
         newRecord: gain > 0,
         cleared: 1,
         lastClearMs: clearMs,
@@ -479,13 +574,12 @@ class GameController extends Notifier<GameSession?> {
       _pendingNext = false;
       final puzzle = _ready.remove(s.stage) ?? _generator.generate(Rules.rushSpec(s.stage));
       _prefetchAround(s.stage);
-      _solution = Solver(puzzle.target).solve(puzzle.board, maxDepth: puzzle.maxMoves);
       _puzzleElapsed = 0;
       state = s.copyWith(
         phase: Phase.playing,
         puzzle: puzzle,
         board: puzzle.board,
-        tileIds: List.generate(Board.cellCount, (i) => i + (s.puzzleSerial + 1) * 100),
+        tileIds: List.generate(puzzle.board.cellCount, (i) => i + (s.puzzleSerial + 1) * 100),
         puzzleSerial: s.puzzleSerial + 1,
         rotations: 0,
         movesUsed: 0,
@@ -495,6 +589,7 @@ class GameController extends Notifier<GameSession?> {
         clearHint: true,
       );
       _history.clear();
+      _analyze();
       _emit(const NewPuzzleEvent());
       _audio.play(Sfx.whoosh, volume: 0.6);
     } else {
@@ -514,7 +609,9 @@ class GameController extends Notifier<GameSession?> {
         if (game != _gameId) return; // 그 사이 새 게임이 시작됐으면 버린다
         _preparing.remove(st);
         _ready[st] = p;
-      }, onError: (_) => _preparing.remove(st));
+      }, onError: (_) {
+        _preparing.remove(st);
+      });
     }
   }
 
@@ -581,3 +678,12 @@ class GameController extends Notifier<GameSession?> {
 }
 
 final gameProvider = NotifierProvider<GameController, GameSession?>(GameController.new);
+
+/// 백그라운드 isolate 에서 돌리는 풀이 계산 (최상위 함수라서 isolate 로 넘길 수 있다).
+/// (풀이, 탐색량을 다 써서 포기했는지)
+(Solution?, bool) _solveJob((String, int, int) job) {
+  final (code, target, depth) = job;
+  final solver = Solver(SymmetryType.values[target]);
+  final sol = solver.solve(Board.parse(code), maxDepth: depth, maxNodes: GameController._backgroundNodes);
+  return (sol, solver.gaveUp);
+}

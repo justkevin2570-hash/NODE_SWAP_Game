@@ -58,7 +58,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
   void _load(int step) {
     _step = step;
     _board = lessons[step].board;
-    _ids = List.generate(Board.cellCount, (i) => i + step * 100);
+    _ids = List.generate(_board.cellCount, (i) => i + step * 100);
     _selected = null;
     _rotations = 0;
     _solved = false;
@@ -77,7 +77,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
     if (_selected == null || _selected == cell) {
       setState(() => _selected = _selected == cell ? null : cell);
       _audio.play(Sfx.select);
-    } else if (Board.isAdjacent(_selected!, cell)) {
+    } else if (_board.isAdjacent(_selected!, cell)) {
       _swap(_selected!, cell);
     } else {
       setState(() => _selected = cell);
@@ -114,9 +114,9 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
 
   void _rotate() {
     if (_solved) return;
-    final ids = List<int>.filled(Board.cellCount, 0);
-    for (int i = 0; i < Board.cellCount; i++) {
-      ids[Board.rotatedIndex(i)] = _ids[i];
+    final ids = List<int>.filled(_board.cellCount, 0);
+    for (int i = 0; i < _board.cellCount; i++) {
+      ids[_board.grid.rotatedIndex(i)] = _ids[i];
     }
     setState(() {
       _board = _board.rotateCW();
@@ -257,7 +257,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
             size: boardSize,
             selected: _selected,
             pairCell: ref.watch(settingsProvider.select((st) => st.pairPreview)) && _selected != null
-                ? _lesson.target.partnerOf(_selected!)
+                ? _board.grid.partnerOf(_lesson.target, _selected!)
                 : null,
             hint: _hint,
             rotations: _rotations,

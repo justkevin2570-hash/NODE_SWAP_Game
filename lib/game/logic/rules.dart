@@ -5,13 +5,22 @@ import 'symmetry.dart';
 
 enum GameMode { rush, classic }
 
-enum Difficulty {
-  easy('쉬움'),
-  normal('보통'),
-  hard('어려움');
+/// 클래식 판 크기. 판이 클수록 어렵고, 크기마다 100탄이 쉬운 것부터 어려운 것으로 이어진다.
+/// 러시는 늘 5×5.
+enum BoardSize {
+  five(5),
+  seven(7),
+  nine(9);
 
-  const Difficulty(this.label);
-  final String label;
+  const BoardSize(this.size);
+
+  /// 한 변의 칸 수.
+  final int size;
+
+  String get label => '${size}x$size'; // Jua 글꼴에 × 기호가 없어서 x 를 쓴다
+
+  /// 바로 앞 크기 (5×5 는 null).
+  BoardSize? get previous => index == 0 ? null : BoardSize.values[index - 1];
 }
 
 /// 게임 밸런스 수치는 모두 여기에 모아 둔다.
@@ -90,72 +99,52 @@ abstract final class Rules {
     return fever ? m * 2 : m;
   }
 
-  // ── 클래식 모드 ─────────────────────────────────────────
-  static PuzzleSpec classicSpec(Difficulty d) => switch (d) {
-        Difficulty.easy => const PuzzleSpec(
-            scrambleSwaps: 3, slack: 2, types: SymmetryType.values),
-        Difficulty.normal => const PuzzleSpec(
-            scrambleSwaps: 4, slack: 1, types: SymmetryType.values),
-        Difficulty.hard => const PuzzleSpec(
-            scrambleSwaps: 5, slack: 0, types: SymmetryType.values),
-      };
-
-  // ── 클래식 스테이지 (난이도별 100탄) ──────────────────────
+  // ── 클래식 모드 (판 크기별 100탄) ──────────────────────
   static const int stageCount = 100;
+
+  /// 앞 크기를 이만큼 깨면 다음 크기(7×7, 9×9)가 열린다.
+  static const int sizeUnlockAt = 30;
 
   /// 탄 번호(1~100)에 따른 최소 이동 범위와 나오는 대칭. 탄이 올라갈수록 조금씩 어려워진다.
   /// 이 곡선으로 tool/generate_stages.dart 가 퍼즐을 미리 만들어 stages_data.dart 에 저장한다.
-  static ({int minPar, int maxPar, List<SymmetryType> types}) stageCurve(Difficulty d, int stage) {
+  static ({int minPar, int maxPar, List<SymmetryType> types}) stageCurve(BoardSize b, int stage) {
     const hv = [SymmetryType.horizontal, SymmetryType.vertical];
     const hvp = [SymmetryType.horizontal, SymmetryType.vertical, SymmetryType.point];
     const all = SymmetryType.values;
-    final (int lo, int hi, List<SymmetryType> types) = switch (d) {
-      Difficulty.easy => stage <= 10
-          ? (1, 1, hv)
-          : stage <= 20
-              ? (1, 2, hv)
-              : stage <= 35
-                  ? (2, 2, hvp)
-                  : stage <= 50
-                      ? (2, 3, hvp)
-                      : stage <= 75
-                          ? (2, 3, all)
-                          : (3, 3, all),
-      Difficulty.normal => stage <= 10
-          ? (2, 2, hv)
-          : stage <= 25
-              ? (2, 3, hvp)
-              : stage <= 50
-                  ? (3, 3, hvp)
-                  : stage <= 75
-                      ? (3, 4, all)
-                      : (4, 4, all),
-      Difficulty.hard => stage <= 10
-          ? (3, 3, hv)
-          : stage <= 25
-              ? (3, 4, hvp)
-              : stage <= 50
-                  ? (4, 4, all)
-                  : stage <= 75
-                      ? (4, 5, all)
-                      : (5, 5, all),
+    // (1~20탄, 21~50탄, 51~80탄, 81~100탄) 의 최소 이동 범위
+    final ranges = switch (b) {
+      BoardSize.five => const [(1, 2), (2, 3), (3, 4), (4, 5)],
+      BoardSize.seven => const [(2, 3), (3, 4), (4, 6), (6, 7)],
+      BoardSize.nine => const [(3, 4), (4, 5), (5, 7), (7, 8)],
     };
-    return (minPar: lo, maxPar: hi, types: types);
+    final band = stage <= 20
+        ? 0
+        : stage <= 50
+            ? 1
+            : stage <= 80
+                ? 2
+                : 3;
+    final (lo, hi) = ranges[band];
+    return (minPar: lo, maxPar: hi, types: band == 0 ? hv : band == 1 ? hvp : all);
   }
 
-  static int classicTimeMs(Difficulty d) => switch (d) {
-        Difficulty.easy => 90000,
-        Difficulty.normal => 60000,
-        Difficulty.hard => 45000,
+  /// 최소 이동에 더해 주는 여유 이동: 1~30탄 +2, 31~70탄 +1, 71~100탄 +0.
+  static int stageSlack(int stage) => stage <= 30
+      ? 2
+      : stage <= 70
+          ? 1
+          : 0;
+
+  static int classicTimeMs(BoardSize b) => switch (b) {
+        BoardSize.five => 60000,
+        BoardSize.seven => 90000,
+        BoardSize.nine => 120000,
       };
 
-  static int classicHints(Difficulty d) => switch (d) {
-        Difficulty.easy => 3,
-        Difficulty.normal => 2,
-        Difficulty.hard => 1,
-      };
+  /// 힌트·되돌리기 수: 1~70탄 3번, 71~100탄 2번.
+  static int classicHints(int stage) => stage <= 70 ? 3 : 2;
 
-  static int classicUndos(Difficulty d) => classicHints(d);
+  static int classicUndos(int stage) => classicHints(stage);
 
   static int classicStars({required int movesUsed, required int par}) {
     if (movesUsed <= par) return 3;
@@ -164,16 +153,16 @@ abstract final class Rules {
   }
 
   static int classicScore({
-    required Difficulty difficulty,
+    required BoardSize boardSize,
     required int movesUsed,
     required int maxMoves,
     required int remainingMs,
     required int stars,
   }) {
-    final base = switch (difficulty) {
-      Difficulty.easy => 500,
-      Difficulty.normal => 800,
-      Difficulty.hard => 1200,
+    final base = switch (boardSize) {
+      BoardSize.five => 500,
+      BoardSize.seven => 800,
+      BoardSize.nine => 1200,
     };
     return base +
         (maxMoves - movesUsed) * 100 +

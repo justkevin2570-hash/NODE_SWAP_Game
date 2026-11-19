@@ -31,15 +31,15 @@ bool _solvedUpToRotation(Board b, SymmetryType t) {
 /// 휴리스틱 없이 BFS 로 구한 최소 swap 수 (maxDepth 를 넘으면 null).
 int? _bruteForceMinSwaps(Board start, SymmetryType t, int maxDepth) {
   if (_solvedUpToRotation(start, t)) return 0;
-  final seen = <int>{start.bits};
+  final seen = <String>{start.code};
   var frontier = Queue<Board>()..add(start);
   for (int depth = 1; depth <= maxDepth; depth++) {
     final next = Queue<Board>();
     for (final b in frontier) {
-      for (final (a, c) in Board.adjacentPairs) {
+      for (final (a, c) in b.grid.adjacentPairs) {
         if (b[a] == b[c]) continue;
         final n = b.swap(a, c);
-        if (!seen.add(n.bits)) continue;
+        if (!seen.add(n.code)) continue;
         if (_solvedUpToRotation(n, t)) return depth;
         next.add(n);
       }
@@ -53,7 +53,7 @@ int? _bruteForceMinSwaps(Board start, SymmetryType t, int maxDepth) {
 bool _replay(Puzzle p, Solution s) {
   var b = p.board;
   for (final (a, c) in s.swaps) {
-    if (!Board.isAdjacent(a, c) || b[a] == b[c]) return false;
+    if (!b.isAdjacent(a, c) || b[a] == b[c]) return false;
     b = b.swap(a, c);
   }
   if (s.needsRotation) b = b.rotateCW();
@@ -68,7 +68,6 @@ void main() {
   group('생성되는 모든 퍼즐은 풀 수 있다', () {
     final specs = <String, PuzzleSpec>{
       for (int stage = 1; stage <= 30; stage++) '러시 $stage스테이지': Rules.rushSpec(stage),
-      for (final d in Difficulty.values) '클래식 ${d.label}': Rules.classicSpec(d),
     };
 
     test('스펙 × 대칭 종류 × $_samples판: 최소 이동 ≤ 허용 이동, 풀이 재생 성공', () {
@@ -121,13 +120,14 @@ void main() {
       expect(checked, greaterThan(100));
     });
 
-    test('클래식 스테이지 300개: 풀림, 최소 이동 일치, 중복 없음, 난이도 곡선 준수', () {
+    test('클래식 스테이지 300개 (5×5·7×7·9×9): 풀림, 최소 이동 일치, 중복 없음, 난이도 곡선 준수', () {
       final seen = <String>{};
-      for (final d in Difficulty.values) {
+      for (final d in BoardSize.values) {
         expect(stageData[d]!.length, Rules.stageCount);
         for (int stage = 1; stage <= Rules.stageCount; stage++) {
           final p = stagePuzzle(d, stage);
           final c = Rules.stageCurve(d, stage);
+          expect(p.board.size, d.size);
           final reason = '${d.name} $stage탄';
           expect(_solvedUpToRotation(p.board, p.target), isFalse, reason: reason);
           final s = Solver(p.target).solve(p.board, maxDepth: p.maxMoves);
@@ -136,14 +136,19 @@ void main() {
           expect(_replay(p, s), isTrue, reason: reason);
           expect(p.par, inInclusiveRange(c.minPar, c.maxPar), reason: reason);
           expect(c.types, contains(p.target), reason: reason);
-          expect(p.maxMoves - p.par, Rules.classicSpec(d).slack, reason: reason);
-          expect(seen.add('${p.board.bits}:${p.target.name}'), isTrue, reason: '중복: $reason');
+          expect(p.maxMoves - p.par, Rules.stageSlack(stage), reason: reason);
+          expect(seen.add('${p.board.code}:${p.target.name}'), isTrue, reason: '중복: $reason');
         }
         // 뒤쪽 탄이 앞쪽보다 평균적으로 어렵다
         double avg(int from, int to) =>
             [for (int i = from; i <= to; i++) stagePuzzle(d, i).par].reduce((a, b) => a + b) / (to - from + 1);
         expect(avg(81, 100), greaterThan(avg(1, 20)), reason: d.name);
       }
+      // 큰 판일수록 같은 구간에서 더 어렵다
+      double avgPar(BoardSize b) =>
+          [for (int i = 1; i <= Rules.stageCount; i++) stagePuzzle(b, i).par].reduce((a, b) => a + b) / Rules.stageCount;
+      expect(avgPar(BoardSize.seven), greaterThan(avgPar(BoardSize.five)));
+      expect(avgPar(BoardSize.nine), greaterThan(avgPar(BoardSize.seven)));
     });
 
     test('튜토리얼 보드도 모두 풀린다', () {
@@ -184,9 +189,9 @@ void main() {
     testWidgets('클래식: 300개 스테이지를 모두 실제 규칙으로 클리어 (별 3개)', (tester) async {
       final container = await makeContainer();
       final ctrl = container.read(gameProvider.notifier);
-      for (final d in Difficulty.values) {
+      for (final d in BoardSize.values) {
         for (int i = 1; i <= Rules.stageCount; i++) {
-          ctrl.start(GameMode.classic, difficulty: d, stage: i);
+          ctrl.start(GameMode.classic, boardSize: d, stage: i);
           await tester.pump(const Duration(milliseconds: 1900)); // 카운트다운
           final s = container.read(gameProvider)!;
           expect(s.phase, Phase.playing);
@@ -225,8 +230,8 @@ void main() {
       final container = await makeContainer();
       final ctrl = container.read(gameProvider.notifier);
       var checked = 0;
-      for (int i = 1; i <= Rules.stageCount && checked < 20; i++) {
-        ctrl.start(GameMode.classic, difficulty: Difficulty.hard, stage: i); // 여유 0 → 마지막 수로 이동을 다 씀
+      for (int i = 1; i <= 30 && checked < 20; i++) {
+        ctrl.start(GameMode.classic, boardSize: BoardSize.five, stage: 70 + i); // 여유 0 → 마지막 수로 이동을 다 씀
         await tester.pump(const Duration(milliseconds: 1900));
         final s = container.read(gameProvider)!;
         final sol = Solver(s.target).solve(s.board, maxDepth: s.movesLeft)!;

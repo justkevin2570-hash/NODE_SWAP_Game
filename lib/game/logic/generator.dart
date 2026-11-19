@@ -30,7 +30,11 @@ class PuzzleSpec {
     required this.scrambleSwaps,
     required this.slack,
     required this.types,
+    this.size = 5,
   });
+
+  /// 판 크기 (size × size).
+  final int size;
 
   /// 대칭 보드를 섞을 때 쓰는 swap 횟수 (+ 회전 1회).
   final int scrambleSwaps;
@@ -56,7 +60,7 @@ class PuzzleGenerator {
 
     Puzzle? fallback;
     for (int attempt = 0; attempt < 40; attempt++) {
-      final scrambled = _scramble(_symmetricBoard(type), spec.scrambleSwaps);
+      final scrambled = _scramble(_symmetricBoard(type, spec.size), spec.scrambleSwaps);
       final solution = solver.solve(scrambled, maxDepth: spec.scrambleSwaps);
       if (solution == null || solution.moveCount == 0) continue;
       final puzzle = Puzzle(
@@ -69,23 +73,30 @@ class PuzzleGenerator {
       if (fallback == null || puzzle.par > fallback.par) fallback = puzzle;
     }
     // 원하는 난이도를 못 맞춰도 풀 수 있는 퍼즐은 반드시 돌려준다.
-    return fallback ?? _trivialPuzzle(type, spec.slack);
+    return fallback ?? _trivialPuzzle(type, spec.slack, spec.size);
   }
 
   /// 완성된 대칭 보드 (타이틀 화면 데모 등에 사용).
-  Board symmetricBoard(SymmetryType type) => _symmetricBoard(type);
+  Board symmetricBoard(SymmetryType type, {int size = 5}) => _symmetricBoard(type, size);
 
-  Board _symmetricBoard(SymmetryType type) {
+  Board _symmetricBoard(SymmetryType type, int size) {
+    final grid = Grid.of(size);
+    final n = grid.cellCount;
+    final partner = grid.partners(type);
     while (true) {
-      var bits = 0;
-      for (int i = 0; i < Board.cellCount; i++) {
-        final p = type.partnerOf(i);
+      final cells = List<int>.filled(n, 0);
+      var ones = 0;
+      for (int i = 0; i < n; i++) {
+        final p = partner[i];
         if (p < i) continue;
-        if (_rng.nextBool()) bits |= (1 << i) | (1 << p);
+        if (_rng.nextBool()) {
+          cells[i] = 1;
+          cells[p] = 1;
+          ones += p == i ? 1 : 2;
+        }
       }
-      final ones = _popCount(bits);
-      // 너무 한쪽 색으로 쏠린 보드는 섞어도 재미가 없다.
-      if (ones >= 8 && ones <= 17) return Board(bits);
+      // 너무 한쪽 색으로 쏠린 보드는 섞어도 재미가 없다 (5×5 기준 8~17칸).
+      if (ones >= n * 0.32 && ones <= n * 0.68) return Board.fromCells(size, cells);
     }
   }
 
@@ -100,26 +111,25 @@ class PuzzleGenerator {
         continue;
       }
       // 값이 다른 칸끼리만 섞어야 실제로 보드가 바뀐다.
+      final pairs = b.grid.adjacentPairs;
       final candidates = <int>[
-        for (int i = 0; i < Board.adjacentPairs.length; i++)
-          if (i != last &&
-              b[Board.adjacentPairs[i].$1] != b[Board.adjacentPairs[i].$2])
-            i,
+        for (int i = 0; i < pairs.length; i++)
+          if (i != last && b[pairs[i].$1] != b[pairs[i].$2]) i,
       ];
       if (candidates.isEmpty) continue;
       final pick = candidates[_rng.nextInt(candidates.length)];
-      final (x, y) = Board.adjacentPairs[pick];
+      final (x, y) = pairs[pick];
       b = b.swap(x, y);
       last = pick;
     }
     return b;
   }
 
-  Puzzle _trivialPuzzle(SymmetryType type, int slack) {
+  Puzzle _trivialPuzzle(SymmetryType type, int slack, int size) {
     // 대칭 보드에서 한 칸만 어긋나게 만든다 (최소 1수).
     while (true) {
-      final base = _symmetricBoard(type);
-      for (final (a, c) in Board.adjacentPairs) {
+      final base = _symmetricBoard(type, size);
+      for (final (a, c) in base.grid.adjacentPairs) {
         final b = base.swap(a, c);
         final s = Solver(type).solve(b, maxDepth: 2);
         if (s != null && s.moveCount == 1) {
@@ -127,15 +137,6 @@ class PuzzleGenerator {
         }
       }
     }
-  }
-
-  static int _popCount(int v) {
-    var n = 0;
-    while (v != 0) {
-      v &= v - 1;
-      n++;
-    }
-    return n;
   }
 }
 

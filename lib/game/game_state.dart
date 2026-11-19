@@ -32,7 +32,7 @@ class Hint {
 class GameSession {
   const GameSession({
     required this.mode,
-    required this.difficulty,
+    required this.boardSize,
     required this.puzzle,
     required this.board,
     required this.tileIds,
@@ -62,10 +62,11 @@ class GameSession {
     this.stuck = false,
     this.stageNumber,
     this.starGain = 0,
+    this.unlockedSize,
   });
 
   final GameMode mode;
-  final Difficulty difficulty;
+  final BoardSize boardSize;
   final Puzzle puzzle;
   final Board board;
 
@@ -116,6 +117,9 @@ class GameSession {
   /// 이번 클리어로 늘어난 별 수 (클래식 스테이지).
   final int starGain;
 
+  /// 이번 클리어로 새로 열린 판 크기 (클래식, 없으면 null).
+  final BoardSize? unlockedSize;
+
   bool get canUndo => canAct && canUndoMove && undosLeft > 0;
 
   SymmetryType get target => puzzle.target;
@@ -163,10 +167,11 @@ class GameSession {
     bool? canUndoMove,
     bool? stuck,
     int? starGain,
+    BoardSize? unlockedSize,
   }) {
     return GameSession(
       mode: mode,
-      difficulty: difficulty,
+      boardSize: boardSize,
       puzzle: puzzle ?? this.puzzle,
       board: board ?? this.board,
       tileIds: tileIds ?? this.tileIds,
@@ -196,6 +201,7 @@ class GameSession {
       stuck: stuck ?? this.stuck,
       stageNumber: stageNumber,
       starGain: starGain ?? this.starGain,
+      unlockedSize: unlockedSize ?? this.unlockedSize,
     );
   }
 }

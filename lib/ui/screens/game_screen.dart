@@ -23,10 +23,10 @@ import '../widgets/pastel_background.dart';
 import 'result_screen.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
-  const GameScreen({super.key, required this.mode, this.difficulty = Difficulty.normal, this.stage, this.puzzle});
+  const GameScreen({super.key, required this.mode, this.boardSize = BoardSize.five, this.stage, this.puzzle});
 
   final GameMode mode;
-  final Difficulty difficulty;
+  final BoardSize boardSize;
 
   /// 클래식에서 같은 퍼즐을 다시 할 때 그 퍼즐.
   final Puzzle? puzzle;
@@ -65,7 +65,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       onResume: _ctrl.appShown,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _ctrl.start(widget.mode, difficulty: widget.difficulty, stage: widget.stage, puzzle: widget.puzzle);
+      _ctrl.start(widget.mode, boardSize: widget.boardSize, stage: widget.stage, puzzle: widget.puzzle);
     });
   }
 
@@ -269,7 +269,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final pairPreview = ref.watch(settingsProvider.select((st) => st.pairPreview));
     return LayoutBuilder(builder: (context, c) {
       // c 는 좌우 패딩(16 × 2)을 빼기 전 크기다.
-      final boardSize = min(c.maxWidth - 32 - 8, c.maxHeight * 0.56).clamp(220.0, 460.0);
+      // 큰 판(7×7·9×9)은 타일이 너무 작아지지 않게 좌우 여백과 세로 비율을 조금 더 쓴다.
+      final big = s.board.size > 5;
+      final boardSize = min(c.maxWidth - 32 - (big ? 0 : 8), c.maxHeight * (big ? 0.6 : 0.56)).clamp(220.0, 520.0);
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
         child: Column(
@@ -309,7 +311,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               target: s.target,
               size: boardSize,
               selected: s.selected,
-              pairCell: pairPreview && s.selected != null ? s.target.partnerOf(s.selected!) : null,
+              pairCell: pairPreview && s.selected != null ? s.board.grid.partnerOf(s.target, s.selected!) : null,
               hint: s.hint,
               rotations: s.rotations,
               enabled: s.canAct && !s.stuck,
@@ -343,7 +345,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         Column(
           key: _scoreKey,
           children: [
-            Text(widget.mode == GameMode.rush ? 'SCORE' : '${widget.difficulty.label} ${s.stageNumber ?? ''}탄',
+            Text(widget.mode == GameMode.rush ? 'SCORE' : '${widget.boardSize.label} ${s.stageNumber ?? ''}탄',
                 style: TextStyles.caption),
             RollingNumber(
               value: s.score,

@@ -105,7 +105,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     const Spacer(),
                     Text(
                       classic
-                          ? '${s.difficulty.label} ${s.stageNumber ?? ''}탄'
+                          ? '${s.boardSize.label} ${s.stageNumber ?? ''}탄'
                           : '러시 모드',
                       style: TextStyles.caption.copyWith(fontSize: 16),
                     ).animate().fadeIn(),
@@ -147,7 +147,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
-                                        '${progress.totalStars(s.difficulty)} / ${Rules.stageCount * 3}',
+                                        '${progress.totalStars(s.boardSize)} / ${Rules.stageCount * 3}',
                                         style: TextStyles.number.copyWith(
                                           fontSize: 44,
                                           color: Palette.ink,
@@ -183,6 +183,23 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                       onPlay: (c) => c.repeat(reverse: true),
                                     )
                                     .scaleXY(end: 1.08, duration: 600.ms),
+                              if (s.unlockedSize != null) ...[
+                                const SizedBox(height: 8),
+                                Pill(
+                                  color: Palette.mint,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.lock_open_rounded, size: 18, color: Palette.ink),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '${s.unlockedSize!.label} 클래식이 열렸어요!',
+                                        style: TextStyles.body.copyWith(color: Palette.ink),
+                                      ),
+                                    ],
+                                  ),
+                                ).animate().fadeIn(delay: 600.ms).scaleXY(begin: 0.6, curve: Curves.easeOutBack),
+                              ],
                               if (_weekly != null) ...[
                                 const SizedBox(height: 8),
                                 Pill(
@@ -279,14 +296,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           onPressed: onTap,
         ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.4);
 
-    void newRun() => _go(GameScreen(mode: s.mode, difficulty: s.difficulty));
+    void newRun() => _go(GameScreen(mode: s.mode, boardSize: s.boardSize));
     void retry() => _go(
-      GameScreen(mode: s.mode, difficulty: s.difficulty, stage: s.stageNumber),
+      GameScreen(mode: s.mode, boardSize: s.boardSize, stage: s.stageNumber),
     );
     final stage = s.stageNumber ?? 1;
     final hasNext = stage < Rules.stageCount;
     void nextStage() => _go(
-      GameScreen(mode: s.mode, difficulty: s.difficulty, stage: stage + 1),
+      GameScreen(mode: s.mode, boardSize: s.boardSize, stage: stage + 1),
     );
 
     if (s.mode == GameMode.rush) {
@@ -332,7 +349,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             ),
             (
               '진행',
-              '${progress.clearedCount(s.difficulty)} / ${Rules.stageCount}탄',
+              '${progress.clearedCount(s.boardSize)} / ${Rules.stageCount}탄',
               Palette.lavenderDeep,
             ),
           ];

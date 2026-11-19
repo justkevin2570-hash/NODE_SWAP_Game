@@ -7,7 +7,6 @@ import '../../core/storage.dart';
 import '../../core/theme.dart';
 import '../../game/logic/rules.dart';
 import '../widgets/bubbly.dart';
-import '../widgets/hud.dart';
 
 Future<T?> _showGlassSheet<T>(BuildContext context, Widget child) {
   return showModalBottomSheet<T>(
@@ -49,9 +48,16 @@ Future<T?> _showGlassSheet<T>(BuildContext context, Widget child) {
   );
 }
 
-// ── 클래식 난이도 선택 ──────────────────────────────────────────
-Future<Difficulty?> showClassicSheet(BuildContext context) =>
-    _showGlassSheet<Difficulty>(context, const _ClassicSheet());
+// ── 클래식 판 크기 선택 ──────────────────────────────────────────
+Future<BoardSize?> showClassicSheet(BuildContext context) =>
+    _showGlassSheet<BoardSize>(context, const _ClassicSheet());
+
+/// 판 크기별 색 (클래식 시트·스테이지 목록에서 같이 쓴다).
+(Color, Color) boardSizeColors(BoardSize b) => switch (b) {
+      BoardSize.five => (Palette.mint, Palette.mintDeep),
+      BoardSize.seven => (Palette.sky, Palette.skyDeep),
+      BoardSize.nine => (Palette.pink, Palette.pinkDeep),
+    };
 
 class _ClassicSheet extends ConsumerWidget {
   const _ClassicSheet();
@@ -59,46 +65,66 @@ class _ClassicSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(stageProgressProvider);
-    final rows = [
-      (Difficulty.easy, Palette.mint, Palette.mintDeep, '여유 이동 +2, 90초'),
-      (Difficulty.normal, Palette.sky, Palette.skyDeep, '여유 이동 +1, 60초'),
-      (Difficulty.hard, Palette.pink, Palette.pinkDeep, '최소 이동만, 45초'),
-    ];
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text('클래식 모드', style: TextStyles.title),
         const SizedBox(height: 4),
         Text(
-          '100탄 퍼즐을 차례로 깨며 별 3개에 도전!',
+          '판 크기마다 100탄! 쉬운 탄부터 차례로 깨 보세요',
           style: TextStyles.caption.copyWith(fontSize: 15),
         ),
         const SizedBox(height: 18),
-        for (final (d, light, deep, desc) in rows) ...[
-          BubblyButton(
-            label: d.label,
-            subtitle: desc,
-            color: light,
-            deep: deep,
-            width: double.infinity,
-            height: 70,
-            fontSize: 24,
-            onPressed: () => Navigator.of(context).pop(d),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.star_rounded, size: 18, color: Palette.butterDeep),
-                const SizedBox(width: 4),
-                Text(
-                  '${progress.totalStars(d)} / ${Rules.stageCount * 3}   |   ${progress.clearedCount(d)} / ${Rules.stageCount}탄',
-                  style: TextStyles.caption,
-                ),
-              ],
+        for (final b in BoardSize.values) ...[
+          if (progress.isSizeUnlocked(b)) ...[
+            BubblyButton(
+              label: b.label,
+              subtitle: '탄마다 ${Rules.classicTimeMs(b) ~/ 1000}초',
+              color: boardSizeColors(b).$1,
+              deep: boardSizeColors(b).$2,
+              width: double.infinity,
+              height: 70,
+              fontSize: 24,
+              onPressed: () => Navigator.of(context).pop(b),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 12),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star_rounded, size: 18, color: Palette.butterDeep),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${progress.totalStars(b)} / ${Rules.stageCount * 3}   |   ${progress.clearedCount(b)} / ${Rules.stageCount}탄',
+                      style: TextStyles.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            BubblyButton(
+              label: b.label,
+              subtitle: '${b.previous!.label} ${Rules.sizeUnlockAt}탄을 깨면 열려요',
+              icon: Icons.lock_rounded,
+              color: const Color(0xFFE9E5F2),
+              deep: Palette.inkFaint,
+              labelColor: Palette.inkSoft,
+              width: double.infinity,
+              height: 70,
+              fontSize: 24,
+              onPressed: null,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 12),
+              child: Text(
+                '${b.previous!.label}  ${progress.clearedCount(b.previous!).clamp(0, Rules.sizeUnlockAt)} / ${Rules.sizeUnlockAt}탄',
+                style: TextStyles.caption,
+              ),
+            ),
+          ],
         ],
       ],
     );

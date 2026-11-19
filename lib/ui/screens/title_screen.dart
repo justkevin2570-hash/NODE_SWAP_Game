@@ -55,7 +55,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
 
   Future<void> _openClassic() async {
     final d = await showClassicSheet(context);
-    if (d != null && mounted) _go(StageMapScreen(difficulty: d));
+    if (d != null && mounted) _go(StageMapScreen(boardSize: d));
   }
 
   @override
@@ -262,7 +262,7 @@ class _DemoBoardState extends State<_DemoBoard> {
       _type = SymmetryType.values[_serial % SymmetryType.values.length];
       _board = _gen.symmetricBoard(_type);
       _serial++;
-      _ids = List.generate(Board.cellCount, (i) => i + _serial * 100);
+      _ids = List.generate(_board.cellCount, (i) => i + _serial * 100);
     });
     Future.delayed(const Duration(milliseconds: 1100), () {
       if (mounted) _key.currentState?.celebrate();

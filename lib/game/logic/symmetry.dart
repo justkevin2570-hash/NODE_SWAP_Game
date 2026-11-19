@@ -36,27 +36,15 @@ enum SymmetryType {
   /// 대각선 대칭인지.
   bool get isDiagonal => this == diagonalUp || this == diagonalDown;
 
-  /// (row, col) 칸의 대칭 짝 인덱스.
-  int partnerOf(int index) {
-    final r = index ~/ 5;
-    final c = index % 5;
+  /// [n]×[n] 판에서 (row, col) 칸의 대칭 짝 인덱스. 보통은 Grid.partnerOf 를 쓴다 (캐시됨).
+  int partnerAt(int r, int c, int n) {
+    final m = n - 1;
     return switch (this) {
-      SymmetryType.horizontal => r * 5 + (4 - c),
-      SymmetryType.vertical => (4 - r) * 5 + c,
-      SymmetryType.point => (4 - r) * 5 + (4 - c),
-      SymmetryType.diagonalUp => (4 - c) * 5 + (4 - r),
-      SymmetryType.diagonalDown => c * 5 + r,
+      SymmetryType.horizontal => r * n + (m - c),
+      SymmetryType.vertical => (m - r) * n + c,
+      SymmetryType.point => (m - r) * n + (m - c),
+      SymmetryType.diagonalUp => (m - c) * n + (m - r),
+      SymmetryType.diagonalDown => c * n + r,
     };
   }
-
-  /// 서로 다른 두 칸으로 이루어진 대칭 쌍 목록 (각 쌍은 한 번씩).
-  List<(int, int)> get pairs => _pairs[this]!;
-
-  static final Map<SymmetryType, List<(int, int)>> _pairs = {
-    for (final t in SymmetryType.values)
-      t: [
-        for (int i = 0; i < 25; i++)
-          if (t.partnerOf(i) > i) (i, t.partnerOf(i)),
-      ],
-  };
 }

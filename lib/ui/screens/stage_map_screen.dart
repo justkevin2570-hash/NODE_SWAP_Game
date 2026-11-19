@@ -10,12 +10,13 @@ import '../widgets/bubbly.dart';
 import '../widgets/layout.dart';
 import '../widgets/pastel_background.dart';
 import 'game_screen.dart';
+import 'sheets.dart';
 
-/// 클래식 난이도별 1~100탄 지도. 깬 탄은 별, 다음 탄은 반짝임, 나머지는 잠김.
+/// 클래식 판 크기별 1~100탄 지도. 깬 탄은 별, 다음 탄은 반짝임, 나머지는 잠김.
 class StageMapScreen extends ConsumerStatefulWidget {
-  const StageMapScreen({super.key, required this.difficulty});
+  const StageMapScreen({super.key, required this.boardSize});
 
-  final Difficulty difficulty;
+  final BoardSize boardSize;
 
   @override
   ConsumerState<StageMapScreen> createState() => _StageMapScreenState();
@@ -27,11 +28,7 @@ class _StageMapScreenState extends ConsumerState<StageMapScreen> {
   final _scroll = ScrollController();
   bool _scrolled = false;
 
-  (Color, Color) get _colors => switch (widget.difficulty) {
-        Difficulty.easy => (Palette.mint, Palette.mintDeep),
-        Difficulty.normal => (Palette.sky, Palette.skyDeep),
-        Difficulty.hard => (Palette.pink, Palette.pinkDeep),
-      };
+  (Color, Color) get _colors => boardSizeColors(widget.boardSize);
 
   @override
   void dispose() {
@@ -42,7 +39,7 @@ class _StageMapScreenState extends ConsumerState<StageMapScreen> {
   Future<void> _play(int stage) async {
     await Navigator.of(context).push(softRoute(GameScreen(
       mode: GameMode.classic,
-      difficulty: widget.difficulty,
+      boardSize: widget.boardSize,
       stage: stage,
     )));
     if (mounted) ref.read(audioProvider).setMusic(Music.menu, fade: const Duration(milliseconds: 900));
@@ -63,7 +60,7 @@ class _StageMapScreenState extends ConsumerState<StageMapScreen> {
   @override
   Widget build(BuildContext context) {
     final progress = ref.watch(stageProgressProvider);
-    final d = widget.difficulty;
+    final d = widget.boardSize;
     final (light, deep) = _colors;
     final next = progress.nextStage(d);
     final cleared = progress.clearedCount(d);

@@ -136,16 +136,16 @@ final recordsProvider =
     NotifierProvider<RecordsNotifier, Records>(RecordsNotifier.new);
 
 // ── 클래식 스테이지 진행 ─────────────────────────────────────────
-/// 난이도별 100탄의 별 개수(0~3). 0 이면 아직 못 깬 탄.
+/// 판 크기별 100탄의 별 개수(0~3). 0 이면 아직 못 깬 탄.
 class StageProgress {
   const StageProgress(this.stars);
 
-  final Map<Difficulty, List<int>> stars;
+  final Map<BoardSize, List<int>> stars;
 
-  int starsOf(Difficulty d, int stage) => stars[d]![stage - 1];
+  int starsOf(BoardSize d, int stage) => stars[d]![stage - 1];
 
   /// 깬 탄 수 (= 다음에 열릴 탄 번호 - 1). 탄은 1탄부터 순서대로 열린다.
-  int clearedCount(Difficulty d) {
+  int clearedCount(BoardSize d) {
     final list = stars[d]!;
     var n = 0;
     while (n < list.length && list[n] > 0) {
@@ -154,24 +154,35 @@ class StageProgress {
     return n;
   }
 
-  bool isUnlocked(Difficulty d, int stage) => stage <= clearedCount(d) + 1;
+  bool isUnlocked(BoardSize d, int stage) => stage <= clearedCount(d) + 1;
 
   /// 지금 할 차례인 탄 (다 깼으면 마지막 탄).
-  int nextStage(Difficulty d) => (clearedCount(d) + 1).clamp(1, Rules.stageCount);
+  int nextStage(BoardSize d) => (clearedCount(d) + 1).clamp(1, Rules.stageCount);
 
-  int totalStars(Difficulty d) => stars[d]!.fold(0, (a, b) => a + b);
+  int totalStars(BoardSize d) => stars[d]!.fold(0, (a, b) => a + b);
+
+  /// 이 크기를 할 수 있는지: 5×5 는 처음부터, 7×7·9×9 는 앞 크기를 [Rules.sizeUnlockAt]탄 깨면 열린다.
+  bool isSizeUnlocked(BoardSize d) {
+    final prev = d.previous;
+    return prev == null || clearedCount(prev) >= Rules.sizeUnlockAt;
+  }
 }
 
 class StageProgressNotifier extends Notifier<StageProgress> {
   SharedPreferences get _p => ref.read(prefsProvider);
 
-  static String _key(Difficulty d) => 'stageStars_${d.name}';
+  /// 'stageStars_5x5' 처럼 크기별로 저장한다. (예전 쉬움/보통/어려움 기록은 'stageStars_easy' 등이라 쓰지 않는다.)
+  static String _key(BoardSize d) => 'stageStars_${d.size}x${d.size}';
+  static const _legacyKeys = ['stageStars_easy', 'stageStars_normal', 'stageStars_hard'];
 
   @override
   StageProgress build() {
     final p = ref.watch(prefsProvider);
+    for (final k in _legacyKeys) {
+      if (p.containsKey(k)) p.remove(k); // 판 크기 방식으로 바뀌기 전 기록 정리
+    }
     return StageProgress({
-      for (final d in Difficulty.values) d: _decode(p.getString(_key(d))),
+      for (final d in BoardSize.values) d: _decode(p.getString(_key(d))),
     });
   }
 
@@ -181,7 +192,7 @@ class StageProgressNotifier extends Notifier<StageProgress> {
       );
 
   /// [stage]탄을 별 [stars]개로 깼다. 기존보다 많을 때만 바뀐다. 늘어난 별 수를 돌려준다.
-  int record(Difficulty d, int stage, int stars) {
+  int record(BoardSize d, int stage, int stars) {
     final list = List<int>.of(state.stars[d]!);
     final prev = list[stage - 1];
     if (stars <= prev) return 0;
@@ -192,9 +203,10 @@ class StageProgressNotifier extends Notifier<StageProgress> {
   }
 
   void reset() {
-    for (final d in Difficulty.values) {
+    for (final d in BoardSize.values) {
       _p.remove(_key(d));
     }
+    _legacyKeys.forEach(_p.remove);
     state = build();
   }
 }

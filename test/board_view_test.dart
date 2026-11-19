@@ -21,7 +21,7 @@ void main() {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       BoardView(
-                        board: const Board(0x1F0F0F1),
+                        board: Board(0x1F0F0F1),
                         tileIds: List.generate(25, (i) => i),
                         target: type,
                         size: requested,

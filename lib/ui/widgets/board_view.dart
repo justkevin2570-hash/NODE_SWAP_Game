@@ -8,7 +8,7 @@ import '../../game/logic/board.dart';
 import '../../game/logic/symmetry.dart';
 import 'tile_view.dart';
 
-/// 5×5 보드. 탭-탭 또는 드래그로 인접 타일을 바꾼다.
+/// N×N 보드 (5×5·7×7·9×9). 탭-탭 또는 드래그로 인접 타일을 바꾼다.
 class BoardView extends StatefulWidget {
   const BoardView({
     super.key,
@@ -48,8 +48,12 @@ class BoardView extends StatefulWidget {
 }
 
 class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
-  static const _padding = 12.0;
-  static const _gap = 7.0;
+  /// 한 변의 칸 수.
+  int get _n => widget.board.size;
+
+  // 판이 클수록 여백과 타일 간격을 줄인다 (5×5: 12/7, 7×7: 10/5, 9×9: 8/4).
+  double get _padding => switch (_n) { <= 5 => 12.0, <= 7 => 10.0, _ => 8.0 };
+  double get _gap => switch (_n) { <= 5 => 7.0, <= 7 => 5.0, _ => 4.0 };
 
   late final _rotate = AnimationController(vsync: this, duration: const Duration(milliseconds: 360));
   late final _shake = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
@@ -71,7 +75,7 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
   /// (요청 크기와 실제 크기가 다르면 타일 격자와 대칭축의 중심이 어긋난다.)
   double _size = 0;
 
-  double get _cell => (_size - _padding * 2 - _gap * 4) / 5;
+  double get _cell => (_size - _padding * 2 - _gap * (_n - 1)) / _n;
 
   @override
   void initState() {
@@ -105,8 +109,8 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
     }
     // 위치가 바뀐 타일은 말랑하게 찌그러뜨린다.
     if (!_instantLayout) {
-      final oldPos = {for (int i = 0; i < 25; i++) old.tileIds[i]: i};
-      for (int i = 0; i < 25; i++) {
+      final oldPos = {for (int i = 0; i < old.tileIds.length; i++) old.tileIds[i]: i};
+      for (int i = 0; i < widget.tileIds.length; i++) {
         final id = widget.tileIds[i];
         final was = oldPos[id];
         if (was != null && was != i) _bump[id] = (_bump[id] ?? 0) + 1;
@@ -162,8 +166,8 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
 
   // ── 배치 ──────────────────────────────────────────────────
   Offset _cellOffset(int cell) {
-    final r = cell ~/ 5;
-    final c = cell % 5;
+    final r = cell ~/ _n;
+    final c = cell % _n;
     return Offset(_padding + c * (_cell + _gap), _padding + r * (_cell + _gap));
   }
 
@@ -173,21 +177,23 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
     if (x < 0 || y < 0) return null;
     final c = (x / (_cell + _gap)).floor();
     final r = (y / (_cell + _gap)).floor();
-    if (r < 0 || r > 4 || c < 0 || c > 4) return null;
-    return r * 5 + c;
+    if (r < 0 || r >= _n || c < 0 || c >= _n) return null;
+    return r * _n + c;
   }
 
   Duration _waveDelay(int cell) {
-    final r = cell ~/ 5;
-    final c = cell % 5;
+    final r = cell ~/ _n;
+    final c = cell % _n;
+    final m = (_n - 1) / 2; // 가운데 칸
     final d = switch (widget.target) {
-      SymmetryType.horizontal => (c - 2).abs().toDouble(),
-      SymmetryType.vertical => (r - 2).abs().toDouble(),
-      SymmetryType.point => sqrt(pow(r - 2, 2) + pow(c - 2, 2)),
-      SymmetryType.diagonalUp => (r + c - 4).abs() / sqrt2,
+      SymmetryType.horizontal => (c - m).abs(),
+      SymmetryType.vertical => (r - m).abs(),
+      SymmetryType.point => sqrt(pow(r - m, 2) + pow(c - m, 2)),
+      SymmetryType.diagonalUp => (r + c - 2 * m).abs() / sqrt2,
       SymmetryType.diagonalDown => (r - c).abs() / sqrt2,
     };
-    return Duration(milliseconds: (d * 70).round());
+    // 판 크기와 상관없이 물결이 비슷한 시간 안에 퍼지게 한다.
+    return Duration(milliseconds: (d * 140 / m).round());
   }
 
   // ── 입력 ──────────────────────────────────────────────────
@@ -203,15 +209,16 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
     final threshold = _cell * 0.38;
     if (_dragDelta.distance < threshold) return;
     final from = _dragCell!;
-    final r = from ~/ 5;
-    final c = from % 5;
+    final n = _n;
+    final r = from ~/ n;
+    final c = from % n;
     int? to;
     if (_dragDelta.dx.abs() > _dragDelta.dy.abs()) {
       final nc = c + (_dragDelta.dx > 0 ? 1 : -1);
-      if (nc >= 0 && nc < 5) to = r * 5 + nc;
+      if (nc >= 0 && nc < n) to = r * n + nc;
     } else {
       final nr = r + (_dragDelta.dy > 0 ? 1 : -1);
-      if (nr >= 0 && nr < 5) to = nr * 5 + c;
+      if (nr >= 0 && nr < n) to = nr * n + c;
     }
     _dragUsed = true;
     if (to != null) widget.onSwap(from, to);
@@ -235,7 +242,7 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
   @visibleForTesting
   static int debugBuildCount = 0;
 
-  /// 테스트용: 타일별 연출 기록의 크기 (퍼즐이 바뀌어도 25개를 넘지 않아야 한다).
+  /// 테스트용: 타일별 연출 기록의 크기 (퍼즐이 바뀌어도 칸 수를 넘지 않아야 한다).
   @visibleForTesting
   int get debugTrackedTiles => _seenIds.length;
 
@@ -245,8 +252,9 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
     final cell = _cell;
     final positionDuration = _instantLayout ? Duration.zero : const Duration(milliseconds: 210);
 
+    final n = _n;
     final tiles = <Widget>[];
-    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i < n * n; i++) {
       final id = widget.tileIds[i];
       final isNew = _seenIds.add(id);
       final o = _cellOffset(i);
@@ -267,7 +275,7 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
           hinted: widget.hint?.covers(i) ?? false,
           pairMark: widget.pairCell == i && widget.selected != i,
           dimmed: widget.dimmed,
-          entranceDelay: isNew ? Duration(milliseconds: 40 + ((i ~/ 5) + (i % 5)) * 28) : null,
+          entranceDelay: isNew ? Duration(milliseconds: 40 + ((i ~/ n) + (i % n)) * 112 ~/ (n - 1)) : null,
           bumpToken: _bump[id] ?? 0,
           pulseToken: _pulse[id] ?? 0,
           nudgeToken: _nudge[id] ?? 0,
@@ -318,7 +326,7 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: CustomPaint(painter: _AxisPainter(widget.target, deep, behind: true)),
+              child: CustomPaint(painter: _AxisPainter(widget.target, deep, n: n, behind: true)),
             ),
             AnimatedBuilder(
               animation: _rotate,
@@ -348,7 +356,7 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
             ),
             Positioned.fill(
               child: IgnorePointer(
-                child: CustomPaint(painter: _AxisPainter(widget.target, deep, behind: false)),
+                child: CustomPaint(painter: _AxisPainter(widget.target, deep, n: n, behind: false)),
               ),
             ),
           ],
@@ -360,10 +368,11 @@ class BoardViewState extends State<BoardView> with TickerProviderStateMixin {
 
 /// 대칭축 표시. 좌우 → 세로선, 상하 → 가로선, 점대칭 → 가운데 점과 고리.
 class _AxisPainter extends CustomPainter {
-  _AxisPainter(this.type, this.color, {required this.behind});
+  _AxisPainter(this.type, this.color, {required this.n, required this.behind});
 
   final SymmetryType type;
   final Color color;
+  final int n;
   final bool behind;
 
   @override
@@ -372,7 +381,7 @@ class _AxisPainter extends CustomPainter {
     if (behind) {
       // 축을 따라 은은한 띠
       final band = Paint()..color = color.withValues(alpha: 0.10);
-      final w = size.width * 0.2;
+      final w = size.width / n; // 가운데 줄 한 칸 너비
       switch (type) {
         case SymmetryType.horizontal:
           canvas.drawRRect(
@@ -403,9 +412,9 @@ class _AxisPainter extends CustomPainter {
     }
     final paint = Paint()
       ..color = color.withValues(alpha: 0.55)
-      ..strokeWidth = 3
+      ..strokeWidth = n > 7 ? 2.2 : 3
       ..strokeCap = StrokeCap.round;
-    const dash = 8.0, gap = 7.0;
+    final dash = n > 5 ? 6.0 : 8.0, gap = n > 5 ? 6.0 : 7.0;
     switch (type) {
       case SymmetryType.horizontal:
         for (double y = -6; y < size.height + 6; y += dash + gap) {
@@ -446,5 +455,5 @@ class _AxisPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_AxisPainter old) => old.type != type || old.color != color;
+  bool shouldRepaint(_AxisPainter old) => old.type != type || old.color != color || old.n != n;
 }

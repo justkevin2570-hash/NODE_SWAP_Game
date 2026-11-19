@@ -11,7 +11,7 @@ import 'package:node_swap_game/game/logic/symmetry.dart';
 Board _applyAll(Board b, Solution s) {
   var out = b;
   for (final (x, y) in s.swaps) {
-    expect(Board.isAdjacent(x, y), isTrue);
+    expect(b.isAdjacent(x, y), isTrue);
     out = out.swap(x, y);
   }
   if (s.needsRotation) out = out.rotateCW();
@@ -53,8 +53,8 @@ void main() {
 
     test('rotatedIndex 와 rotateCW 일치', () {
       final one = Board(1 << 1); // (0,1)
-      expect(one.rotateCW()[Board.rotatedIndex(1)], 1);
-      expect(Board.rotatedIndex(1), 1 * 5 + 4); // (1,4)
+      expect(one.rotateCW()[one.grid.rotatedIndex(1)], 1);
+      expect(one.grid.rotatedIndex(1), 1 * 5 + 4); // (1,4)
     });
 
     test('대각선 대칭: y=−x 는 전치, y=x 는 반대 대각선, 회전하면 서로 바뀐다', () {
@@ -71,19 +71,41 @@ void main() {
       expect(down.rotateCW().isSymmetric(SymmetryType.diagonalUp), isTrue);
       expect(down.rotateCW().rotateCW().isSymmetric(SymmetryType.diagonalDown), isTrue);
       // 대각선 위 5칸은 자기 자신과 짝, 나머지 20칸은 10쌍
+      final g = down.grid;
       for (final t in [SymmetryType.diagonalUp, SymmetryType.diagonalDown]) {
-        expect(t.pairs.length, 10);
+        expect(g.pairs(t).length, 10);
         expect(t.rotated.rotated, t);
       }
-      expect(SymmetryType.diagonalDown.partnerOf(1), 5); // (0,1) ↔ (1,0)
-      expect(SymmetryType.diagonalUp.partnerOf(0), 24); // (0,0) ↔ (4,4)
-      expect(SymmetryType.diagonalUp.partnerOf(4), 4); // (0,4) 는 ↗ 대각선 위
+      expect(g.partnerOf(SymmetryType.diagonalDown, 1), 5); // (0,1) ↔ (1,0)
+      expect(g.partnerOf(SymmetryType.diagonalUp, 0), 24); // (0,0) ↔ (4,4)
+      expect(g.partnerOf(SymmetryType.diagonalUp, 4), 4); // (0,4) 는 ↗ 대각선 위
     });
 
-    test('인접 쌍은 40개', () {
-      expect(Board.adjacentPairs.length, 40);
-      for (final (a, c) in Board.adjacentPairs) {
-        expect(Board.isAdjacent(a, c), isTrue);
+    test('인접 쌍은 5×5 40개, 7×7 84개, 9×9 144개', () {
+      for (final (n, count) in [(5, 40), (7, 84), (9, 144)]) {
+        final g = Grid.of(n);
+        expect(g.adjacentPairs.length, count);
+        for (final (a, c) in g.adjacentPairs) {
+          expect(g.isAdjacent(a, c), isTrue);
+        }
+      }
+      expect(Grid.of(9).isAdjacent(8, 9), isFalse); // 줄 끝과 다음 줄 처음은 이웃이 아니다
+    });
+
+    test('큰 판: 축 위 칸 수, 회전, 문자열 변환', () {
+      for (final n in [7, 9]) {
+        final g = Grid.of(n);
+        for (final t in SymmetryType.values) {
+          final onAxis = [for (int i = 0; i < g.cellCount; i++) if (g.partnerOf(t, i) == i) i].length;
+          expect(onAxis, t == SymmetryType.point ? 1 : n, reason: '$n ${t.name}');
+          expect(g.pairs(t).length, (g.cellCount - onAxis) ~/ 2);
+        }
+        final b = PuzzleGenerator(Random(n)).symmetricBoard(SymmetryType.diagonalUp, size: n);
+        expect(b.size, n);
+        expect(b.isSymmetric(SymmetryType.diagonalUp), isTrue);
+        expect(b.rotateCW().isSymmetric(SymmetryType.diagonalDown), isTrue);
+        expect(b.rotateCW().rotateCW().rotateCW().rotateCW(), b);
+        expect(Board.parse(b.code), b);
       }
     });
   });
@@ -144,14 +166,27 @@ void main() {
       expect(s.moveCount, p.par);
     });
 
-    test('클래식 난이도별 생성', () {
+    test('7×7·9×9 퍼즐도 만들고 풀 수 있다', () {
       final gen = PuzzleGenerator(Random(7));
-      for (final d in Difficulty.values) {
-        for (int k = 0; k < 10; k++) {
-          final p = gen.generate(Rules.classicSpec(d));
-          expect(p.maxMoves - p.par, Rules.classicSpec(d).slack);
+      for (final n in [7, 9]) {
+        for (final t in SymmetryType.values) {
+          final p = gen.generate(PuzzleSpec(scrambleSwaps: 5, slack: 1, types: [t], size: n), forcedType: t);
+          expect(p.board.size, n);
+          final s = Solver(t).solve(p.board, maxDepth: p.maxMoves)!;
+          expect(s.moveCount, p.par);
+          expect(_applyAll(p.board, s).isSymmetric(t), isTrue);
         }
       }
+    });
+
+    test('탐색량 제한: 다 못 따져 보면 gaveUp', () {
+      final p = PuzzleGenerator(Random(3))
+          .generate(const PuzzleSpec(scrambleSwaps: 8, slack: 0, types: [SymmetryType.horizontal], size: 9));
+      final solver = Solver(p.target);
+      expect(solver.solve(p.board, maxDepth: p.par, maxNodes: 3), isNull);
+      expect(solver.gaveUp, isTrue);
+      expect(solver.solve(p.board, maxDepth: p.par)!.moveCount, p.par);
+      expect(solver.gaveUp, isFalse);
     });
   });
 
@@ -161,7 +196,7 @@ void main() {
         expect(Rules.rushSpec(stage).types.any((t) => t.isDiagonal), isFalse);
       }
       expect(Rules.rushSpec(6).types, containsAll([SymmetryType.diagonalUp, SymmetryType.diagonalDown]));
-      expect(Rules.classicSpec(Difficulty.easy).types.length, 5);
+      expect(Rules.stageCurve(BoardSize.nine, 100).types.length, 5);
     });
 
     test('콤보 배율은 최대 3배, 피버는 2배', () {
