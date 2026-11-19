@@ -91,16 +91,12 @@ class Records {
   const Records({
     this.rushBestScore = 0,
     this.rushBestStage = 0,
-    this.classicBest = const {},
-    this.classicStars = const {},
   });
 
   final int rushBestScore;
 
   /// 러시 모드에서 가장 많이 푼 퍼즐 수.
   final int rushBestStage;
-  final Map<Difficulty, int> classicBest;
-  final Map<Difficulty, int> classicStars;
 }
 
 class RecordsNotifier extends Notifier<Records> {
@@ -112,12 +108,6 @@ class RecordsNotifier extends Notifier<Records> {
     return Records(
       rushBestScore: p.getInt('rushBestScore') ?? 0,
       rushBestStage: p.getInt('rushBestStage') ?? 0,
-      classicBest: {
-        for (final d in Difficulty.values) d: p.getInt('classicBest_${d.name}') ?? 0,
-      },
-      classicStars: {
-        for (final d in Difficulty.values) d: p.getInt('classicStars_${d.name}') ?? 0,
-      },
     );
   }
 
@@ -128,26 +118,9 @@ class RecordsNotifier extends Notifier<Records> {
     state = Records(
       rushBestScore: isRecord ? score : state.rushBestScore,
       rushBestStage: bestStage,
-      classicBest: state.classicBest,
-      classicStars: state.classicStars,
     );
     _p.setInt('rushBestScore', state.rushBestScore);
     _p.setInt('rushBestStage', bestStage);
-    return isRecord;
-  }
-
-  bool submitClassic(Difficulty d, {required int score, required int stars}) {
-    final prev = state.classicBest[d] ?? 0;
-    final prevStars = state.classicStars[d] ?? 0;
-    final isRecord = score > prev;
-    state = Records(
-      rushBestScore: state.rushBestScore,
-      rushBestStage: state.rushBestStage,
-      classicBest: {...state.classicBest, d: isRecord ? score : prev},
-      classicStars: {...state.classicStars, d: stars > prevStars ? stars : prevStars},
-    );
-    _p.setInt('classicBest_${d.name}', state.classicBest[d]!);
-    _p.setInt('classicStars_${d.name}', state.classicStars[d]!);
     return isRecord;
   }
 
@@ -161,3 +134,70 @@ class RecordsNotifier extends Notifier<Records> {
 
 final recordsProvider =
     NotifierProvider<RecordsNotifier, Records>(RecordsNotifier.new);
+
+// ── 클래식 스테이지 진행 ─────────────────────────────────────────
+/// 난이도별 100탄의 별 개수(0~3). 0 이면 아직 못 깬 탄.
+class StageProgress {
+  const StageProgress(this.stars);
+
+  final Map<Difficulty, List<int>> stars;
+
+  int starsOf(Difficulty d, int stage) => stars[d]![stage - 1];
+
+  /// 깬 탄 수 (= 다음에 열릴 탄 번호 - 1). 탄은 1탄부터 순서대로 열린다.
+  int clearedCount(Difficulty d) {
+    final list = stars[d]!;
+    var n = 0;
+    while (n < list.length && list[n] > 0) {
+      n++;
+    }
+    return n;
+  }
+
+  bool isUnlocked(Difficulty d, int stage) => stage <= clearedCount(d) + 1;
+
+  /// 지금 할 차례인 탄 (다 깼으면 마지막 탄).
+  int nextStage(Difficulty d) => (clearedCount(d) + 1).clamp(1, Rules.stageCount);
+
+  int totalStars(Difficulty d) => stars[d]!.fold(0, (a, b) => a + b);
+}
+
+class StageProgressNotifier extends Notifier<StageProgress> {
+  SharedPreferences get _p => ref.read(prefsProvider);
+
+  static String _key(Difficulty d) => 'stageStars_${d.name}';
+
+  @override
+  StageProgress build() {
+    final p = ref.watch(prefsProvider);
+    return StageProgress({
+      for (final d in Difficulty.values) d: _decode(p.getString(_key(d))),
+    });
+  }
+
+  static List<int> _decode(String? s) => List.generate(
+        Rules.stageCount,
+        (i) => s != null && i < s.length ? (int.tryParse(s[i]) ?? 0).clamp(0, 3) : 0,
+      );
+
+  /// [stage]탄을 별 [stars]개로 깼다. 기존보다 많을 때만 바뀐다. 늘어난 별 수를 돌려준다.
+  int record(Difficulty d, int stage, int stars) {
+    final list = List<int>.of(state.stars[d]!);
+    final prev = list[stage - 1];
+    if (stars <= prev) return 0;
+    list[stage - 1] = stars;
+    state = StageProgress({...state.stars, d: list});
+    _p.setString(_key(d), list.join());
+    return stars - prev;
+  }
+
+  void reset() {
+    for (final d in Difficulty.values) {
+      _p.remove(_key(d));
+    }
+    state = build();
+  }
+}
+
+final stageProgressProvider = NotifierProvider<StageProgressNotifier, StageProgress>(StageProgressNotifier.new);
+

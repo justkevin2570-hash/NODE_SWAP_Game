@@ -58,7 +58,7 @@ class _ClassicSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final records = ref.watch(recordsProvider);
+    final progress = ref.watch(stageProgressProvider);
     final rows = [
       (Difficulty.easy, Palette.mint, Palette.mintDeep, '여유 이동 +2, 90초'),
       (Difficulty.normal, Palette.sky, Palette.skyDeep, '여유 이동 +1, 60초'),
@@ -70,7 +70,7 @@ class _ClassicSheet extends ConsumerWidget {
         const Text('클래식 모드', style: TextStyles.title),
         const SizedBox(height: 4),
         Text(
-          '한 판씩 차분하게, 최소 이동에 도전!',
+          '100탄 퍼즐을 차례로 깨며 별 3개에 도전!',
           style: TextStyles.caption.copyWith(fontSize: 15),
         ),
         const SizedBox(height: 18),
@@ -90,17 +90,10 @@ class _ClassicSheet extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (int i = 0; i < 3; i++)
-                  Icon(
-                    Icons.star_rounded,
-                    size: 18,
-                    color: i < (records.classicStars[d] ?? 0)
-                        ? Palette.butterDeep
-                        : Palette.inkFaint,
-                  ),
-                const SizedBox(width: 8),
+                const Icon(Icons.star_rounded, size: 18, color: Palette.butterDeep),
+                const SizedBox(width: 4),
                 Text(
-                  '최고 ${RollingNumber.formatInt(records.classicBest[d] ?? 0)}점',
+                  '${progress.totalStars(d)} / ${Rules.stageCount * 3}   |   ${progress.clearedCount(d)} / ${Rules.stageCount}탄',
                   style: TextStyles.caption,
                 ),
               ],
@@ -205,7 +198,10 @@ class _SettingsSheet extends ConsumerWidget {
                 ],
               ),
             );
-            if (ok == true) ref.read(recordsProvider.notifier).reset();
+            if (ok == true) {
+              ref.read(recordsProvider.notifier).reset();
+              ref.read(stageProgressProvider.notifier).reset();
+            }
           },
         ),
         const SizedBox(height: 14),

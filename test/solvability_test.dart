@@ -12,6 +12,8 @@ import 'package:node_swap_game/game/logic/generator.dart';
 import 'package:node_swap_game/game/logic/lessons.dart';
 import 'package:node_swap_game/game/logic/rules.dart';
 import 'package:node_swap_game/game/logic/solver.dart';
+import 'package:node_swap_game/game/logic/stages.dart';
+import 'package:node_swap_game/game/logic/stages_data.dart';
 import 'package:node_swap_game/game/logic/symmetry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -119,6 +121,31 @@ void main() {
       expect(checked, greaterThan(100));
     });
 
+    test('클래식 스테이지 300개: 풀림, 최소 이동 일치, 중복 없음, 난이도 곡선 준수', () {
+      final seen = <String>{};
+      for (final d in Difficulty.values) {
+        expect(stageData[d]!.length, Rules.stageCount);
+        for (int stage = 1; stage <= Rules.stageCount; stage++) {
+          final p = stagePuzzle(d, stage);
+          final c = Rules.stageCurve(d, stage);
+          final reason = '${d.name} $stage탄';
+          expect(_solvedUpToRotation(p.board, p.target), isFalse, reason: reason);
+          final s = Solver(p.target).solve(p.board, maxDepth: p.maxMoves);
+          expect(s, isNotNull, reason: reason);
+          expect(s!.moveCount, p.par, reason: reason);
+          expect(_replay(p, s), isTrue, reason: reason);
+          expect(p.par, inInclusiveRange(c.minPar, c.maxPar), reason: reason);
+          expect(c.types, contains(p.target), reason: reason);
+          expect(p.maxMoves - p.par, Rules.classicSpec(d).slack, reason: reason);
+          expect(seen.add('${p.board.bits}:${p.target.name}'), isTrue, reason: '중복: $reason');
+        }
+        // 뒤쪽 탄이 앞쪽보다 평균적으로 어렵다
+        double avg(int from, int to) =>
+            [for (int i = from; i <= to; i++) stagePuzzle(d, i).par].reduce((a, b) => a + b) / (to - from + 1);
+        expect(avg(81, 100), greaterThan(avg(1, 20)), reason: d.name);
+      }
+    });
+
     test('튜토리얼 보드도 모두 풀린다', () {
       for (final l in lessons) {
         final s = Solver(l.target).solve(l.board, maxDepth: 3);
@@ -154,12 +181,12 @@ void main() {
       if (sol.needsRotation) ctrl.rotate();
     }
 
-    testWidgets('클래식: 난이도별 100판씩 모두 클리어 (별 3개)', (tester) async {
+    testWidgets('클래식: 300개 스테이지를 모두 실제 규칙으로 클리어 (별 3개)', (tester) async {
       final container = await makeContainer();
       final ctrl = container.read(gameProvider.notifier);
       for (final d in Difficulty.values) {
-        for (int i = 0; i < 100; i++) {
-          ctrl.start(GameMode.classic, difficulty: d);
+        for (int i = 1; i <= Rules.stageCount; i++) {
+          ctrl.start(GameMode.classic, difficulty: d, stage: i);
           await tester.pump(const Duration(milliseconds: 1900)); // 카운트다운
           final s = container.read(gameProvider)!;
           expect(s.phase, Phase.playing);
@@ -198,8 +225,8 @@ void main() {
       final container = await makeContainer();
       final ctrl = container.read(gameProvider.notifier);
       var checked = 0;
-      for (int i = 0; i < 300 && checked < 20; i++) {
-        ctrl.start(GameMode.classic, difficulty: Difficulty.hard); // 여유 0 → 마지막 수로 이동을 다 씀
+      for (int i = 1; i <= Rules.stageCount && checked < 20; i++) {
+        ctrl.start(GameMode.classic, difficulty: Difficulty.hard, stage: i); // 여유 0 → 마지막 수로 이동을 다 씀
         await tester.pump(const Duration(milliseconds: 1900));
         final s = container.read(gameProvider)!;
         final sol = Solver(s.target).solve(s.board, maxDepth: s.movesLeft)!;

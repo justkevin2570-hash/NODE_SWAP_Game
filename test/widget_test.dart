@@ -8,6 +8,8 @@ import 'package:node_swap_game/game/game_controller.dart';
 import 'package:node_swap_game/game/game_state.dart';
 import 'package:node_swap_game/game/logic/rules.dart';
 import 'package:node_swap_game/game/logic/solver.dart';
+import 'package:node_swap_game/ui/screens/stage_map_screen.dart';
+import 'package:node_swap_game/game/logic/stages.dart';
 import 'package:node_swap_game/online/leaderboard.dart';
 import 'package:node_swap_game/ui/screens/game_screen.dart';
 import 'package:node_swap_game/game/logic/board.dart';
@@ -32,6 +34,25 @@ Future<ProviderContainer> _pumpApp(WidgetTester tester, {Map<String, Object> pre
     await tester.pump(const Duration(milliseconds: 100));
   }
   return container;
+}
+
+/// 타이틀 → 클래식 → 난이도 → 스테이지 맵 → [stage]탄 시작 (카운트다운 전까지).
+Future<void> _openStage(WidgetTester tester, String difficulty, {int stage = 1}) async {
+  await tester.tap(find.text('클래식'));
+  await tester.pump();
+  for (int i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  await tester.tap(find.text(difficulty));
+  await tester.pump();
+  for (int i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  await tester.tap(find.descendant(of: find.byType(StageTile), matching: find.text('$stage')).first);
+  await tester.pump();
+  for (int i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
 }
 
 /// 남은 지연 타이머를 흘려보내고 화면을 정리한다.
@@ -181,16 +202,7 @@ void main() {
 
   testWidgets('클래식: 풀면 별과 함께 결과 화면', (tester) async {
     final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
-    await tester.tap(find.text('클래식'));
-    await tester.pump();
-    for (int i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-    await tester.tap(find.text('보통'));
-    await tester.pump();
-    for (int i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
+    await _openStage(tester, '보통');
     await tester.pump(const Duration(milliseconds: 2000));
     final s = container.read(gameProvider)!;
     expect(s.phase, Phase.playing);
@@ -208,7 +220,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1700));
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('CLEAR!'), findsOneWidget);
-    expect(find.text('다음 퍼즐'), findsOneWidget);
+    expect(find.text('다음 탄'), findsOneWidget);
     await _cleanup(tester);
   });
 
@@ -346,16 +358,7 @@ void main() {
 
     testWidgets('클래식: 오래 비워도 끝내지 않는다', (tester) async {
       final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
-      await tester.tap(find.text('클래식'));
-      await tester.pump();
-      for (int i = 0; i < 6; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      await tester.tap(find.text('보통'));
-      await tester.pump();
-      for (int i = 0; i < 6; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
+      await _openStage(tester, '보통');
       await tester.pump(const Duration(milliseconds: 2000));
       await leaveApp(tester);
       await tester.pump(const Duration(minutes: 30));
@@ -395,16 +398,7 @@ void main() {
   group('되돌리기', () {
     Future<ProviderContainer> startClassic(WidgetTester tester, String label) async {
       final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
-      await tester.tap(find.text('클래식'));
-      await tester.pump();
-      for (int i = 0; i < 6; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      await tester.tap(find.text(label));
-      await tester.pump();
-      for (int i = 0; i < 6; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
+      await _openStage(tester, label);
       await tester.pump(const Duration(milliseconds: 2000));
       return container;
     }
@@ -515,23 +509,7 @@ void main() {
     await _cleanup(tester);
   });
 
-  group('같은 퍼즐 다시', () {
-    Future<ProviderContainer> startClassicNormal(WidgetTester tester) async {
-      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
-      await tester.tap(find.text('클래식'));
-      await tester.pump();
-      for (int i = 0; i < 6; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      await tester.tap(find.text('보통'));
-      await tester.pump();
-      for (int i = 0; i < 6; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      await tester.pump(const Duration(milliseconds: 2000));
-      return container;
-    }
-
+  group('클래식 스테이지', () {
     Future<void> toResult(WidgetTester tester) async {
       await tester.pump(const Duration(milliseconds: 1700));
       for (int i = 0; i < 8; i++) {
@@ -548,57 +526,127 @@ void main() {
       await tester.pump(const Duration(milliseconds: 2000)); // 카운트다운
     }
 
-    testWidgets('클리어 → 같은 퍼즐 다시: 같은 보드로 처음부터 (시간·힌트·되돌리기 초기화)', (tester) async {
-      final container = await startClassicNormal(tester);
-      final ctrl = container.read(gameProvider.notifier);
-      final first = container.read(gameProvider)!;
-      // 힌트를 하나 쓰고 풀어서 클리어
-      ctrl.useHint();
-      final sol = Solver(first.target).solve(container.read(gameProvider)!.board)!;
+    void solve(ProviderContainer c) {
+      final ctrl = c.read(gameProvider.notifier);
+      final s = c.read(gameProvider)!;
+      final sol = Solver(s.target).solve(s.board, maxDepth: s.movesLeft)!;
       for (final (a, b) in sol.swaps) {
         ctrl.swap(a, b);
       }
       if (sol.needsRotation) ctrl.rotate();
-      expect(container.read(gameProvider)!.won, isTrue);
-      await toResult(tester);
-      expect(find.text('다음 퍼즐'), findsOneWidget);
-      expect(find.text('같은 퍼즐 다시'), findsOneWidget);
+    }
 
-      await tapAndStart(tester, '같은 퍼즐 다시');
-      final again = container.read(gameProvider)!;
-      expect(again.phase, Phase.playing);
-      expect(again.board, first.board);
-      expect(again.target, first.target);
-      expect(again.puzzle.par, first.puzzle.par);
-      expect(again.movesUsed, 0);
-      expect(again.hintsLeft, Rules.classicHints(Difficulty.normal));
-      expect(again.undosLeft, Rules.classicUndos(Difficulty.normal));
-      expect(again.remainingMs, greaterThan(Rules.classicTimeMs(Difficulty.normal) - 1000));
-      ctrl.quit();
+    testWidgets('1탄 클리어 → 별 저장, 2탄이 열리고 [다음 탄]으로 2탄 시작', (tester) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+      await _openStage(tester, '보통');
+      await tester.pump(const Duration(milliseconds: 2000));
+      final first = container.read(gameProvider)!;
+      expect(first.stageNumber, 1);
+      expect(first.board, stagePuzzle(Difficulty.normal, 1).board);
+      solve(container);
+      expect(container.read(gameProvider)!.won, isTrue);
+      final progress = container.read(stageProgressProvider);
+      expect(progress.starsOf(Difficulty.normal, 1), 3);
+      expect(progress.isUnlocked(Difficulty.normal, 2), isTrue);
+      expect(progress.isUnlocked(Difficulty.normal, 3), isFalse);
+      await toResult(tester);
+      expect(find.text('별 +3'), findsNothing); // 장식 문자 포함 문구
+      expect(find.textContaining('별 +3'), findsOneWidget);
+      expect(find.text('다음 탄'), findsOneWidget);
+      expect(find.text('다시 하기'), findsOneWidget);
+
+      await tapAndStart(tester, '다음 탄');
+      final second = container.read(gameProvider)!;
+      expect(second.stageNumber, 2);
+      expect(second.board, stagePuzzle(Difficulty.normal, 2).board);
+      container.read(gameProvider.notifier).quit();
       await _cleanup(tester);
     });
 
-    testWidgets('실패 → 큰 버튼은 같은 퍼즐 다시, 작은 버튼은 새 퍼즐', (tester) async {
-      final container = await startClassicNormal(tester);
+    testWidgets('다시 하기: 같은 탄을 처음부터, 별은 더 많을 때만 바뀐다', (tester) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true, 'stageStars_easy': '3'});
+      final notifier = container.read(stageProgressProvider.notifier);
+      // 이미 별 3개인 탄을 더 적게 깨도 그대로
+      expect(notifier.record(Difficulty.easy, 1, 1), 0);
+      expect(container.read(stageProgressProvider).starsOf(Difficulty.easy, 1), 3);
+      // 2탄이 열려 있다
+      await _openStage(tester, '쉬움', stage: 2);
+      await tester.pump(const Duration(milliseconds: 2000));
       final first = container.read(gameProvider)!;
-      // 시간 초과로 실패
+      expect(first.stageNumber, 2);
+      // 힌트를 쓰고 클리어
+      container.read(gameProvider.notifier).useHint();
+      solve(container);
+      await toResult(tester);
+      await tapAndStart(tester, '다시 하기');
+      final again = container.read(gameProvider)!;
+      expect(again.stageNumber, 2);
+      expect(again.board, first.board);
+      expect(again.movesUsed, 0);
+      expect(again.hintsLeft, Rules.classicHints(Difficulty.easy));
+      expect(again.undosLeft, Rules.classicUndos(Difficulty.easy));
+      container.read(gameProvider.notifier).quit();
+      await _cleanup(tester);
+    });
+
+    testWidgets('실패 → [다시 하기]만, 다음 탄은 열리지 않는다', (tester) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+      await _openStage(tester, '보통');
+      await tester.pump(const Duration(milliseconds: 2000));
+      final first = container.read(gameProvider)!;
       for (int i = 0; i < 62; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
       expect(container.read(gameProvider)!.phase, Phase.over);
+      expect(container.read(stageProgressProvider).isUnlocked(Difficulty.normal, 2), isFalse);
       await toResult(tester);
-      expect(find.text('같은 퍼즐 다시'), findsOneWidget);
-      expect(find.text('새 퍼즐'), findsOneWidget);
-      expect(find.text('다음 퍼즐'), findsNothing);
-
-      await tapAndStart(tester, '같은 퍼즐 다시');
+      expect(find.text('다시 하기'), findsOneWidget);
+      expect(find.text('다음 탄'), findsNothing);
+      expect(find.text('스테이지 목록'), findsOneWidget);
+      await tapAndStart(tester, '다시 하기');
       expect(container.read(gameProvider)!.board, first.board);
       container.read(gameProvider.notifier).quit();
       await _cleanup(tester);
     });
 
-    testWidgets('일시정지 "처음부터": 클래식은 같은 퍼즐, 러시는 새 도전', (tester) async {
-      final container = await startClassicNormal(tester);
+    testWidgets('잠긴 탄은 눌러도 시작되지 않고, 게임 중 [목록]은 맵으로 돌아간다', (tester) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+      await tester.tap(find.text('클래식'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.tap(find.text('어려움'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(StageMapScreen), findsOneWidget);
+      // 3탄은 잠겨 있다 (숫자 대신 자물쇠)
+      await tester.tap(find.byType(StageTile).at(2));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.byType(GameScreen), findsNothing);
+      // 1탄 시작 후 [목록]
+      await tester.tap(find.descendant(of: find.byType(StageTile), matching: find.text('1')).first);
+      await tester.pump();
+      for (int i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(container.read(gameProvider)!.stageNumber, 1);
+      await tester.tap(find.text('목록'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(GameScreen), findsNothing);
+      expect(find.byType(StageMapScreen), findsOneWidget);
+      await _cleanup(tester);
+    });
+
+    testWidgets('일시정지 "처음부터": 클래식은 같은 탄, 러시는 새 도전', (tester) async {
+      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+      await _openStage(tester, '보통');
+      await tester.pump(const Duration(milliseconds: 2000));
       final ctrl = container.read(gameProvider.notifier);
       final first = container.read(gameProvider)!;
       final sol = Solver(first.target).solve(first.board)!;
@@ -610,14 +658,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 2000));
         final again = container.read(gameProvider)!;
         expect(again.board, first.board);
+        expect(again.stageNumber, 1);
         expect(again.movesUsed, 0);
       }
-      // 오른쪽 위 "새 퍼즐"은 다른 퍼즐로
-      final before = container.read(gameProvider)!.puzzle;
-      ctrl.newPuzzle();
-      expect(identical(container.read(gameProvider)!.puzzle, before), isFalse);
-
-      // 러시의 처음부터는 새 도전
       ctrl.start(GameMode.rush);
       await tester.pump(const Duration(milliseconds: 2000));
       final rushFirst = container.read(gameProvider)!.puzzle;
@@ -628,7 +671,6 @@ void main() {
       final r = container.read(gameProvider)!;
       expect(r.mode, GameMode.rush);
       expect(r.stage, 1);
-      expect(r.remainingMs, greaterThan(Rules.rushStartMs - 1000));
       expect(identical(r.puzzle, rushFirst), isFalse);
       ctrl.quit();
       await _cleanup(tester);

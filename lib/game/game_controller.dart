@@ -12,6 +12,7 @@ import 'logic/board.dart';
 import 'logic/generator.dart';
 import 'logic/rules.dart';
 import 'logic/solver.dart';
+import 'logic/stages.dart';
 
 /// 게임 한 판의 진행을 담당한다. 상태는 [GameSession], 연출은 [events] 로 알린다.
 class GameController extends Notifier<GameSession?> {
@@ -52,11 +53,13 @@ class GameController extends Notifier<GameSession?> {
   }
 
   // ── 시작 ────────────────────────────────────────────────
-  /// 새 판을 시작한다. 클래식에서 [puzzle] 을 주면 그 퍼즐을 처음부터 다시 한다.
-  void start(GameMode mode, {Difficulty difficulty = Difficulty.normal, Puzzle? puzzle}) {
+  /// 새 판을 시작한다. 클래식은 [stage]탄(1~100) 퍼즐로 시작한다.
+  /// [puzzle] 을 직접 주면 그 퍼즐로 한다 (테스트용).
+  void start(GameMode mode, {Difficulty difficulty = Difficulty.normal, int? stage, Puzzle? puzzle}) {
+    if (mode == GameMode.classic && stage == null && puzzle == null) stage = 1;
     puzzle = mode == GameMode.rush
         ? _generator.generate(Rules.rushSpec(1))
-        : puzzle ?? _generator.generate(Rules.classicSpec(difficulty));
+        : puzzle ?? stagePuzzle(difficulty, stage!);
     final time = mode == GameMode.rush ? Rules.rushStartMs : Rules.classicTimeMs(difficulty);
     state = GameSession(
       mode: mode,
@@ -70,6 +73,7 @@ class GameController extends Notifier<GameSession?> {
       hintsLeft: mode == GameMode.rush ? Rules.rushHints : Rules.classicHints(difficulty),
       undosLeft: mode == GameMode.rush ? Rules.rushUndos : Rules.classicUndos(difficulty),
       countdown: 3,
+      stageNumber: mode == GameMode.classic ? stage : null,
     );
     _solution = Solver(puzzle.target).solve(puzzle.board, maxDepth: puzzle.maxMoves);
     _phaseAcc = 0;
@@ -308,15 +312,12 @@ class GameController extends Notifier<GameSession?> {
     final s = state;
     if (s == null) return;
     _audio.duck(false);
-    start(s.mode, difficulty: s.difficulty, puzzle: s.mode == GameMode.classic ? s.puzzle : null);
-  }
-
-  /// 클래식: 새 퍼즐로 바꾼다.
-  void newPuzzle() {
-    final s = state;
-    if (s == null) return;
-    _audio.duck(false);
-    start(s.mode, difficulty: s.difficulty);
+    start(
+      s.mode,
+      difficulty: s.difficulty,
+      stage: s.stageNumber,
+      puzzle: s.mode == GameMode.classic && s.stageNumber == null ? s.puzzle : null,
+    );
   }
 
   // ── 판정 ────────────────────────────────────────────────
@@ -379,13 +380,16 @@ class GameController extends Notifier<GameSession?> {
         remainingMs: s.remainingMs,
         stars: stars,
       );
-      final record = ref.read(recordsProvider.notifier).submitClassic(s.difficulty, score: score, stars: stars);
+      final gain = s.stageNumber == null
+          ? 0
+          : ref.read(stageProgressProvider.notifier).record(s.difficulty, s.stageNumber!, stars);
       state = s.copyWith(
         phase: Phase.over,
         won: true,
         stars: stars,
         score: score,
-        newRecord: record,
+        starGain: gain,
+        newRecord: gain > 0,
         cleared: 1,
         lastClearMs: clearMs,
         clearSelection: true,

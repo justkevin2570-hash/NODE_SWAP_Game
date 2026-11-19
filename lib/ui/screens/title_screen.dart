@@ -21,6 +21,7 @@ import '../widgets/layout.dart';
 import '../widgets/pastel_background.dart';
 import 'game_screen.dart';
 import 'ranking_screen.dart';
+import 'stage_map_screen.dart';
 import 'sheets.dart';
 import 'tutorial_screen.dart';
 
@@ -54,7 +55,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
 
   Future<void> _openClassic() async {
     final d = await showClassicSheet(context);
-    if (d != null && mounted) _go(GameScreen(mode: GameMode.classic, difficulty: d));
+    if (d != null && mounted) _go(StageMapScreen(difficulty: d));
   }
 
   @override

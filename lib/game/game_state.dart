@@ -60,6 +60,8 @@ class GameSession {
     this.undosLeft = 0,
     this.canUndoMove = false,
     this.stuck = false,
+    this.stageNumber,
+    this.starGain = 0,
   });
 
   final GameMode mode;
@@ -108,6 +110,12 @@ class GameSession {
   /// 남은 이동으로는 더 풀 수 없는 상태 (되돌리기나 패스만 가능).
   final bool stuck;
 
+  /// 클래식 스테이지 번호 (1~100). 러시는 null.
+  final int? stageNumber;
+
+  /// 이번 클리어로 늘어난 별 수 (클래식 스테이지).
+  final int starGain;
+
   bool get canUndo => canAct && canUndoMove && undosLeft > 0;
 
   SymmetryType get target => puzzle.target;
@@ -154,6 +162,7 @@ class GameSession {
     int? undosLeft,
     bool? canUndoMove,
     bool? stuck,
+    int? starGain,
   }) {
     return GameSession(
       mode: mode,
@@ -185,6 +194,8 @@ class GameSession {
       undosLeft: undosLeft ?? this.undosLeft,
       canUndoMove: canUndoMove ?? this.canUndoMove,
       stuck: stuck ?? this.stuck,
+      stageNumber: stageNumber,
+      starGain: starGain ?? this.starGain,
     );
   }
 }

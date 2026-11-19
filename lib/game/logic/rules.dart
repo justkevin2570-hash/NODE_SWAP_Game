@@ -100,6 +100,49 @@ abstract final class Rules {
             scrambleSwaps: 5, slack: 0, types: SymmetryType.values),
       };
 
+  // ── 클래식 스테이지 (난이도별 100탄) ──────────────────────
+  static const int stageCount = 100;
+
+  /// 탄 번호(1~100)에 따른 최소 이동 범위와 나오는 대칭. 탄이 올라갈수록 조금씩 어려워진다.
+  /// 이 곡선으로 tool/generate_stages.dart 가 퍼즐을 미리 만들어 stages_data.dart 에 저장한다.
+  static ({int minPar, int maxPar, List<SymmetryType> types}) stageCurve(Difficulty d, int stage) {
+    const hv = [SymmetryType.horizontal, SymmetryType.vertical];
+    const hvp = [SymmetryType.horizontal, SymmetryType.vertical, SymmetryType.point];
+    const all = SymmetryType.values;
+    final (int lo, int hi, List<SymmetryType> types) = switch (d) {
+      Difficulty.easy => stage <= 10
+          ? (1, 1, hv)
+          : stage <= 20
+              ? (1, 2, hv)
+              : stage <= 35
+                  ? (2, 2, hvp)
+                  : stage <= 50
+                      ? (2, 3, hvp)
+                      : stage <= 75
+                          ? (2, 3, all)
+                          : (3, 3, all),
+      Difficulty.normal => stage <= 10
+          ? (2, 2, hv)
+          : stage <= 25
+              ? (2, 3, hvp)
+              : stage <= 50
+                  ? (3, 3, hvp)
+                  : stage <= 75
+                      ? (3, 4, all)
+                      : (4, 4, all),
+      Difficulty.hard => stage <= 10
+          ? (3, 3, hv)
+          : stage <= 25
+              ? (3, 4, hvp)
+              : stage <= 50
+                  ? (4, 4, all)
+                  : stage <= 75
+                      ? (4, 5, all)
+                      : (5, 5, all),
+    };
+    return (minPar: lo, maxPar: hi, types: types);
+  }
+
   static int classicTimeMs(Difficulty d) => switch (d) {
         Difficulty.easy => 90000,
         Difficulty.normal => 60000,

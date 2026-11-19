@@ -23,13 +23,16 @@ import '../widgets/pastel_background.dart';
 import 'result_screen.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
-  const GameScreen({super.key, required this.mode, this.difficulty = Difficulty.normal, this.puzzle});
+  const GameScreen({super.key, required this.mode, this.difficulty = Difficulty.normal, this.stage, this.puzzle});
 
   final GameMode mode;
   final Difficulty difficulty;
 
   /// 클래식에서 같은 퍼즐을 다시 할 때 그 퍼즐.
   final Puzzle? puzzle;
+
+  /// 클래식 스테이지 번호 (1~100).
+  final int? stage;
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -62,7 +65,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       onResume: _ctrl.appShown,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _ctrl.start(widget.mode, difficulty: widget.difficulty, puzzle: widget.puzzle);
+      _ctrl.start(widget.mode, difficulty: widget.difficulty, stage: widget.stage, puzzle: widget.puzzle);
     });
   }
 
@@ -340,7 +343,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         Column(
           key: _scoreKey,
           children: [
-            Text(widget.mode == GameMode.rush ? 'SCORE' : '클래식 | ${widget.difficulty.label}',
+            Text(widget.mode == GameMode.rush ? 'SCORE' : '${widget.difficulty.label} ${s.stageNumber ?? ''}탄',
                 style: TextStyles.caption),
             RollingNumber(
               value: s.score,
@@ -376,8 +379,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final rush = widget.mode == GameMode.rush;
     final stuck = s.stuck;
     return BubblyButton(
-      label: rush ? '패스 -3초' : '새 퍼즐',
-      icon: rush ? Icons.fast_forward_rounded : Icons.refresh_rounded,
+      label: rush ? '패스 -3초' : '목록',
+      icon: rush ? Icons.fast_forward_rounded : Icons.grid_view_rounded,
       color: stuck ? Palette.coral : Palette.white,
       deep: stuck ? Palette.coralDeep : Palette.inkFaint,
       labelColor: stuck ? Palette.ink : Palette.inkSoft,
@@ -386,7 +389,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       fontSize: 14,
       glow: stuck,
       sound: rush ? null : Sfx.button,
-      onPressed: s.canAct ? (rush ? _ctrl.skip : _ctrl.newPuzzle) : null,
+      onPressed: s.canAct ? (rush ? _ctrl.skip : () => Navigator.of(context).pop()) : null,
     );
   }
 
@@ -658,7 +661,7 @@ class _PauseOverlay extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   BubblyButton(
-                    label: '홈으로',
+                    label: mode == GameMode.classic ? '스테이지 목록' : '홈으로',
                     icon: Icons.home_rounded,
                     color: Palette.white,
                     deep: Palette.inkFaint,
