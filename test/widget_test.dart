@@ -8,6 +8,7 @@ import 'package:node_swap_game/game/game_controller.dart';
 import 'package:node_swap_game/game/game_state.dart';
 import 'package:node_swap_game/game/logic/rules.dart';
 import 'package:node_swap_game/game/logic/solver.dart';
+import 'package:node_swap_game/online/leaderboard.dart';
 import 'package:node_swap_game/ui/screens/game_screen.dart';
 import 'package:node_swap_game/game/logic/board.dart';
 import 'package:node_swap_game/ui/widgets/board_view.dart';
@@ -23,6 +24,7 @@ Future<ProviderContainer> _pumpApp(WidgetTester tester, {Map<String, Object> pre
   final container = ProviderContainer(overrides: [
     prefsProvider.overrideWithValue(p),
     audioProvider.overrideWithValue(AudioEngine.silent()),
+    leaderboardProvider.overrideWithValue(const DisabledLeaderboard()),
   ]);
   addTearDown(container.dispose);
   await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SymmetryRushApp()));

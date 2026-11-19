@@ -10,6 +10,7 @@ import '../../core/palette.dart';
 import '../../core/storage.dart';
 import '../../core/theme.dart';
 import '../../game/logic/board.dart';
+import '../../online/leaderboard.dart';
 import '../../game/logic/generator.dart';
 import '../../game/logic/rules.dart';
 import '../../game/logic/symmetry.dart';
@@ -19,6 +20,7 @@ import '../widgets/hud.dart';
 import '../widgets/layout.dart';
 import '../widgets/pastel_background.dart';
 import 'game_screen.dart';
+import 'ranking_screen.dart';
 import 'sheets.dart';
 import 'tutorial_screen.dart';
 
@@ -33,7 +35,11 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => ref.read(audioProvider).setMusic(Music.menu));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(audioProvider).setMusic(Music.menu);
+      // 예전에 못 올린 러시 점수가 있으면 다시 올린다.
+      ref.read(scoreUploaderProvider).flush();
+    });
   }
 
   Future<void> _go(Widget page) async {
@@ -67,6 +73,15 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
+                        if (ref.watch(leaderboardProvider).available) ...[
+                          RoundIconButton(
+                            icon: Icons.emoji_events_rounded,
+                            color: Palette.butter,
+                            deep: Palette.butterDeep,
+                            onPressed: () => _go(const RankingScreen()),
+                          ),
+                          const Spacer(),
+                        ],
                         RoundIconButton(
                           icon: Icons.settings_rounded,
                           onPressed: () => showSettingsSheet(context),

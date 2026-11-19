@@ -66,3 +66,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Play 게임즈 서비스 v2 (랭킹). games_services 플러그인과 같은 버전.
+    implementation("com.google.android.gms:play-services-games-v2:21.0.0")
+}

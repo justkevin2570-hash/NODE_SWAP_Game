@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Play 게임즈 서비스 프로젝트 ID (플레이 콘솔 > Play 게임즈 서비스 > 구성 화면의 숫자).
+     비어 있으면 앱은 Play 게임즈를 초기화하지 않고, 랭킹 기능만 꺼진 채로 정상 동작한다.
+     Dart 쪽 리더보드 ID 는 lib/online/play_games_config.dart 에 있다. -->
+<resources>
+    <string name="game_services_project_id" translatable="false"></string>
+</resources>

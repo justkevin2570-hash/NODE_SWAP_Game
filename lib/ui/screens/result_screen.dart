@@ -6,6 +6,7 @@ import '../../audio/audio_engine.dart';
 import '../../core/palette.dart';
 import '../../core/storage.dart';
 import '../../core/theme.dart';
+import '../../online/leaderboard.dart';
 import '../../game/game_state.dart';
 import '../../game/logic/rules.dart';
 import '../widgets/bubbly.dart';
@@ -14,6 +15,7 @@ import '../widgets/layout.dart';
 import '../widgets/particles.dart';
 import '../widgets/pastel_background.dart';
 import 'game_screen.dart';
+import 'ranking_screen.dart';
 
 class ResultScreen extends ConsumerStatefulWidget {
   const ResultScreen({super.key, required this.session});
@@ -28,6 +30,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   final _particles = GlobalKey<ParticleFieldState>();
   int _shownStars = 0;
 
+  /// 러시 점수를 랭킹에 올린 뒤 받아 온 이번 주 순위.
+  RankEntry? _weekly;
+
   GameSession get s => widget.session;
   bool get _good => s.mode == GameMode.rush ? s.cleared > 0 : s.won;
 
@@ -37,6 +42,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final audio = ref.read(audioProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       audio.setMusic(Music.menu, fade: const Duration(milliseconds: 1200));
+      if (s.mode == GameMode.rush) _submitRank();
       if (s.newRecord || (s.mode == GameMode.classic && s.won)) {
         audio.play(Sfx.fanfare);
       }
@@ -53,6 +59,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         audio.haptic(HapticKind.light);
       }
     });
+  }
+
+  /// 러시 점수를 랭킹에 올리고 이번 주 순위를 받아 온다 (실패해도 게임에는 영향 없음).
+  Future<void> _submitRank() async {
+    final service = ref.read(leaderboardProvider);
+    if (!service.available) return;
+    final ok = await ref.read(scoreUploaderProvider).submit(s.score);
+    if (!ok || !mounted) return;
+    final weekly = await service.me(RankPeriod.weekly);
+    if (mounted) setState(() => _weekly = weekly);
   }
 
   @override
@@ -113,6 +129,20 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                             )
                                 .animate(onPlay: (c) => c.repeat(reverse: true))
                                 .scaleXY(end: 1.08, duration: 600.ms),
+                          if (_weekly != null) ...[
+                            const SizedBox(height: 8),
+                            Pill(
+                              color: Palette.lavender,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.emoji_events_rounded, size: 18, color: Palette.ink),
+                                  const SizedBox(width: 6),
+                                  Text('이번 주 ${_weekly!.rank}위', style: TextStyles.body.copyWith(color: Palette.ink)),
+                                ],
+                              ),
+                            ).animate().scaleXY(begin: 0.6, duration: 500.ms, curve: Curves.elasticOut).fadeIn(),
+                          ],
                           const SizedBox(height: 18),
                           Row(
                             children: _stats(best),
@@ -177,7 +207,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     void newPuzzle() => _go(GameScreen(mode: s.mode, difficulty: s.difficulty));
 
     if (s.mode == GameMode.rush) {
-      return [big('한 번 더!', Icons.replay_rounded, newPuzzle)];
+      return [
+        big('한 번 더!', Icons.replay_rounded, newPuzzle),
+        if (ref.read(leaderboardProvider).available) ...[
+          const SizedBox(height: 12),
+          small('랭킹 보기', Icons.emoji_events_rounded,
+              () => Navigator.of(context).push(softRoute(const RankingScreen()))),
+        ],
+      ];
     }
     if (s.won) {
       return [

@@ -106,6 +106,16 @@ flutter build apk --release --split-per-abi
 python3 tools/subset_fonts.py
 ```
 
+## 랭킹 (Google Play 게임즈)
+
+러시 최고 점수를 Play 게임즈 리더보드에 올리고, 게임 안 랭킹 화면(이번 주 / 전체, 내 순위)과 구글 기본 화면으로 보여줘요.
+
+- 켜는 법: 두 값을 넣고 다시 빌드해요. 하나라도 비어 있으면 랭킹은 꺼진 채로 앱이 정상 동작해요.
+  - `android/app/src/main/res/values/games-ids.xml` 의 `game_services_project_id`: Play 게임즈 프로젝트 ID (숫자)
+  - `lib/online/play_games_config.dart` 의 `kRushLeaderboardAndroidId`: 리더보드 ID (`CgkI...`)
+- 점수는 러시가 끝날 때 자동으로 올라가요. 실패하면 가장 높은 점수를 기억해 두었다가 다음에 다시 보내요.
+- 화면 확인용 예시 데이터: `flutter build web --dart-define=DEMO_LEADERBOARD=true`
+
 ## 테스트
 
 ```bash
