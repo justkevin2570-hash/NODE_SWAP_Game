@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// 의견·버그 제보를 받을 이메일. 비어 있으면 설정 화면에 [의견 보내기] 버튼이 나오지 않는다.
 /// 개인정보처리방침(docs/privacy-policy.md)의 문의 이메일과 같게 맞춘다.
-const String kFeedbackEmail = '';
+const String kFeedbackEmail = 'justkevin2570@gmail.com';
 
 bool get feedbackAvailable => kFeedbackEmail.isNotEmpty;
 

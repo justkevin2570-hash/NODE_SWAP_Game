@@ -39,7 +39,7 @@ Symmetry Rush(이하 "앱")는 사용자의 개인정보를 소중히 여깁니�
 이 방침이 바뀌면 이 페이지에 바뀐 내용과 시행일을 게시합니다.
 
 ## 8. 문의
-개인정보 관련 문의: [문의 이메일 주소를 적어 주세요]
+개인정보 관련 문의: justkevin2570@gmail.com
 
 ---
 
@@ -52,4 +52,4 @@ Effective date: November 20, 2026
 - **On-device data:** best scores, classic stars, unsent scores and settings are stored only on your device. Use "기록 초기화" (reset records) in Settings or uninstall the app to delete them.
 - **No other sharing:** apart from the leaderboard data sent to Google Play Games Services, nothing is shared. No advertising, analytics or tracking SDKs are used.
 - **Permissions:** INTERNET and ACCESS_NETWORK_STATE are used for the leaderboard connection and the music playback library.
-- **Contact:** [your contact email]
+- **Contact:** justkevin2570@gmail.com
