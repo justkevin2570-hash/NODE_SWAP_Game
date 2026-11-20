@@ -59,18 +59,38 @@ enum Sfx {
       };
 }
 
+/// 지금 틀 음악의 "층". 게임 층(play·tense·fever)이 실제로 어떤 곡인지는 [MusicTheme] 이 정한다.
 enum Music {
-  none(null),
-  menu('menu'),
-  play('play'),
-  tense('tense'),
-  fever('fever');
+  none,
+  menu,
+  play,
+  tense,
+  fever;
 
-  const Music(this.file);
-  final String? file;
-
-  /// play/tense/fever 는 같은 템포·길이라 재생 위치를 맞춰 전환한다.
+  /// play/tense/fever 는 같은 테마 안에서 템포·길이가 같아 재생 위치를 맞춰 전환한다.
   bool get isGameLayer => this == play || this == tense || this == fever;
+}
+
+/// 게임 음악 테마. 파일은 `assets/audio/music/{prefix}_{layer}.ogg` (tools/generate_music.py 로 만든다).
+enum MusicTheme {
+  rushPop('rush_pop'),
+  rushWave('rush_wave'),
+  rushChip('rush_chip'),
+  stageFive('stage_five'),
+  stageSeven('stage_seven'),
+  stageNine('stage_nine');
+
+  const MusicTheme(this.prefix);
+  final String prefix;
+
+  static const rushThemes = [rushPop, rushWave, rushChip];
+
+  bool get isStage => this == stageFive || this == stageSeven || this == stageNine;
+
+  /// 층별 파일. 스테이지 곡은 차분한 곡(calm)과 시간이 모자랄 때 곡(tense) 두 개뿐이다.
+  Map<Music, String> get files => isStage
+      ? {Music.play: '${prefix}_calm', Music.tense: '${prefix}_tense'}
+      : {Music.play: '${prefix}_play', Music.tense: '${prefix}_tense', Music.fever: '${prefix}_fever'};
 }
 
 /// 음악·효과음·진동을 한 곳에서 관리한다.
@@ -91,6 +111,11 @@ class AudioEngine {
   /// 소리를 낼 때마다 새 플레이어를 만들고 해제하지 않는다 → 점점 느려지고 음악이 끊긴다.)
   final Map<Sfx, _Voices> _sfx = {};
   final Map<Music, _MusicTrack> _music = {};
+
+  /// 지금 불러 둔 게임 음악 테마 (게임 층 플레이어는 이 테마 것만 갖고 있다).
+  MusicTheme? _theme;
+  MusicTheme? get currentTheme => _theme;
+  int _themeSerial = 0;
   final Map<Music, double> _musicLevel = {};
   Music _current = Music.none;
   Timer? _fadeTimer;
@@ -158,10 +183,14 @@ class AudioEngine {
     }
     await Future.wait([
       for (final s in Sfx.values) _loadSfx(s),
-      for (final m in Music.values)
-        if (m.file != null) _loadMusic(m),
+      _loadMusic(Music.menu, 'menu'),
     ]);
     _ready = true;
+    final theme = _theme;
+    if (theme != null) {
+      _theme = null;
+      await setGameTheme(theme);
+    }
     if (_current != Music.none) {
       final want = _current;
       _current = Music.none;
@@ -185,14 +214,66 @@ class AudioEngine {
     }
   }
 
-  Future<void> _loadMusic(Music m) async {
+  Future<_MusicTrack?> _loadTrack(String file) async {
     try {
-      final p = _MusicTrack('assets/audio/music/${m.file}.wav');
+      final p = _MusicTrack('assets/audio/music/$file.ogg');
       await p.load();
-      _music[m] = p;
-      _musicLevel[m] = 0;
+      return p;
     } catch (e) {
-      debugPrint('music load failed: ${m.file} $e');
+      debugPrint('music load failed: $file $e');
+      return null;
+    }
+  }
+
+  Future<void> _loadMusic(Music m, String file) async {
+    final p = await _loadTrack(file);
+    if (p == null) return;
+    _music[m] = p;
+    _musicLevel[m] = 0;
+  }
+
+  /// 게임 음악 테마를 바꾼다. 이전 테마의 플레이어는 정리하고 새 테마 곡만 불러 둔다
+  /// (곡이 많아도 한 번에 3개까지만 메모리에 둔다).
+  /// 불러오는 사이 게임 층을 틀라고 했으면 다 불러온 뒤 이어서 튼다.
+  Future<void> setGameTheme(MusicTheme theme) async {
+    if (theme == _theme) return;
+    _theme = theme;
+    if (!enabled || !_ready) return;
+    final serial = ++_themeSerial;
+    for (final m in [Music.play, Music.tense, Music.fever]) {
+      final old = _music.remove(m);
+      _musicLevel.remove(m);
+      if (old != null) {
+        old.pause().catchError((_) {});
+        old.dispose().catchError((_) {});
+      }
+    }
+    final loaded = <Music, _MusicTrack>{};
+    await Future.wait([
+      for (final e in theme.files.entries)
+        _loadTrack(e.value).then((p) {
+          if (p != null) loaded[e.key] = p;
+        }),
+    ]);
+    if (serial != _themeSerial) {
+      // 그 사이 다른 테마로 바뀌었다
+      for (final p in loaded.values) {
+        p.dispose().catchError((_) {});
+      }
+      return;
+    }
+    for (final e in loaded.entries) {
+      _music[e.key] = e.value;
+      _musicLevel[e.key] = 0;
+    }
+    final cur = _current;
+    if (cur.isGameLayer && _unlocked && !_background) {
+      final p = _music[cur];
+      if (p != null) {
+        await p.seek(Duration.zero).catchError((_) {});
+        await p.resume();
+        _fadeTo(cur, const Duration(milliseconds: 300));
+      }
     }
   }
 

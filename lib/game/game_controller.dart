@@ -53,6 +53,17 @@ class GameController extends Notifier<GameSession?> {
 
   AudioEngine get _audio => ref.read(audioProvider);
 
+  /// 러시 음악은 판마다 다음 테마로 넘어간다 (연달아 해도 같은 곡이 이어지지 않게).
+  static int _rushThemeSeq = Random().nextInt(MusicTheme.rushThemes.length);
+  MusicTheme _nextRushTheme() => MusicTheme.rushThemes[_rushThemeSeq++ % MusicTheme.rushThemes.length];
+
+  /// 스테이지·오늘의 퍼즐 음악: 판 크기마다 다른 차분한 곡.
+  static MusicTheme stageMusicTheme(BoardSize b) => switch (b) {
+        BoardSize.five => MusicTheme.stageFive,
+        BoardSize.seven => MusicTheme.stageSeven,
+        BoardSize.nine => MusicTheme.stageNine,
+      };
+
   @override
   GameSession? build() {
     ref.onDispose(() {
@@ -104,6 +115,7 @@ class GameController extends Notifier<GameSession?> {
     _timer = Timer.periodic(const Duration(milliseconds: _tickMs), (_) => _tick());
     _emit(const CountdownTick(3));
     _audio.play(Sfx.countdown);
+    _audio.setGameTheme(mode == GameMode.rush ? _nextRushTheme() : stageMusicTheme(boardSize));
     _audio.setMusic(Music.play);
   }
 
@@ -180,7 +192,7 @@ class GameController extends Notifier<GameSession?> {
   void _updateMusic() {
     final s = state;
     if (s == null) return;
-    final tenseAt = s.mode == GameMode.rush ? 15000 : 10000;
+    const tenseAt = 15000; // 남은 시간이 15초 아래면 긴장되는 곡으로
     final Music want;
     if (s.phase == Phase.over) {
       want = Music.none;

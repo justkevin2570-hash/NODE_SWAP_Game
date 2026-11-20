@@ -157,14 +157,16 @@ lib/
     widgets/   보드·타일, 파티클, 떠오르는 글자, HUD, 버튼, 배경
     screens/   타이틀, 게임, 결과, 튜토리얼, 설정/스테이지 시트
 tools/
-  generate_audio.py   배경음악 4곡 + 효과음 30개를 numpy 로 합성
+  generate_audio.py   효과음 30개를 numpy 로 합성 (+ 공용 악기·시퀀서)
+  generate_music.py   배경음악 테마 7개(16곡)를 합성해 OGG 로 저장 (ffmpeg 필요)
   generate_icons.py   앱 아이콘 생성
   subset_fonts.py     한글 글꼴을 쓰는 글자만 남겨 줄이기 (원본은 tools/fonts/)
 ```
 
 ## 사운드와 폰트
 
-- **음악과 효과음**: 모두 `tools/generate_audio.py`로 직접 합성한 오리지널이에요. 외부 샘플은 전혀 쓰지 않았어요.
+- **음악과 효과음**: 모두 `tools/generate_music.py`(음악)와 `tools/generate_audio.py`(효과음)로 직접 합성한 오리지널이에요.
+  - 러시: 팝·신스웨이브·칩튠 3세트(판마다 바뀜, 평소·긴장·피버 층). 스테이지·오늘의 퍼즐: 판 크기별 칼림바·로파이·앰비언트(평소·긴장 층). 외부 샘플은 전혀 쓰지 않았어요.
   - 다시 만들려면 `pip install numpy scipy` 후에 `python3 tools/generate_audio.py`를 실행하세요.
   - 배경음악은 `menu`, `play`, `tense`, `fever` 네 곡이에요.
   - 게임용 세 곡은 같은 템포·길이·화성이에요. 남은 시간이 적어지거나 피버가 발동하면, 재생 위치를 맞춘 채로 자연스럽게 다음 곡으로 넘어가요.

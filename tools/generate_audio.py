@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Node Swap 오리지널 사운드 생성기.
+"""Symmetry Rush 오리지널 효과음 생성기 (+ 배경음악용 공용 악기·시퀀서).
 
-배경음악 루프와 효과음을 numpy 로 직접 합성해서 assets/audio 에 WAV 로 저장한다.
+효과음을 numpy 로 직접 합성해서 assets/audio/sfx 에 WAV 로 저장한다.
+배경음악은 이 파일의 도구를 가져다 쓰는 tools/generate_music.py 가 만든다.
 외부 샘플을 전혀 쓰지 않으므로 저작권 걱정이 없다.
 
     python3 tools/generate_audio.py
@@ -694,10 +695,7 @@ def main() -> None:
     for name, fn in SFX.items():
         x = trim_silence(normalize(fn(), 0.85))
         write_wav(os.path.join(ROOT, "sfx", f"{name}.wav"), fade(x, 0.001, 0.01))
-    print("배경음악")
-    write_wav(os.path.join(ROOT, "music", "menu.wav"), build_menu_track())
-    for level in ("play", "tense", "fever"):
-        write_wav(os.path.join(ROOT, "music", f"{level}.wav"), build_game_track(level))
+    print("배경음악은 tools/generate_music.py 로 만든다")
 
 
 if __name__ == "__main__":
