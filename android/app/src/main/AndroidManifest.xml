@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 랭킹(Play 게임즈 서비스) 연결용 -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="Symmetry Rush"
         android:name="${applicationName}"
