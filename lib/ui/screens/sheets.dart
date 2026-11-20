@@ -186,7 +186,7 @@ class _SettingsSheet extends ConsumerWidget {
             children: [
               const Icon(Icons.compare_arrows_rounded, color: Palette.inkSoft),
               const SizedBox(width: 10),
-              const Expanded(child: Text('짝 칸 표시 (타일을 고르면 대칭 짝을 보여줘요)', style: TextStyles.body)),
+              const Expanded(child: Text('짝 칸 표시 (클래식에서 타일을 고르면 대칭 짝을 보여줘요)', style: TextStyles.body)),
               Switch(value: s.pairPreview, onChanged: n.setPairPreview),
             ],
           ),

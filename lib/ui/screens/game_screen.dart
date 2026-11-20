@@ -316,7 +316,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               target: s.target,
               size: boardSize,
               selected: s.selected,
-              pairCell: pairPreview && s.selected != null ? s.board.grid.partnerOf(s.target, s.selected!) : null,
+              // 짝 칸 표시는 클래식·오늘의 퍼즐에서만 (러시는 스스로 찾는 재미를 남긴다)
+              pairCell: pairPreview && s.mode != GameMode.rush && s.selected != null
+                  ? s.board.grid.partnerOf(s.target, s.selected!)
+                  : null,
               hint: s.hint,
               rotations: s.rotations,
               enabled: s.canAct && !s.stuck,

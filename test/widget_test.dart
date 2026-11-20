@@ -524,24 +524,29 @@ void main() {
     });
   });
 
-  testWidgets('짝 칸 표시: 타일을 고르면 대칭 짝 칸이 표시되고, 설정으로 끌 수 있다', (tester) async {
+  testWidgets('짝 칸 표시: 클래식에서 타일을 고르면 짝 칸이 보이고, 설정으로 끌 수 있다. 러시에서는 안 보인다', (tester) async {
     final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
-    await tester.tap(find.text('러시 시작'));
-    await tester.pump();
-    for (int i = 0; i < 30; i++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
     final ctrl = container.read(gameProvider.notifier);
-    final s = container.read(gameProvider)!;
-    // 축 위가 아닌 칸을 고른다
-    final cell = List.generate(25, (i) => i).firstWhere((i) => s.board.grid.partnerOf(s.target, i) != i);
-    ctrl.tapCell(cell);
-    await tester.pump();
     int marked() => tester.widgetList<TileView>(find.byType(TileView)).where((t) => t.pairMark).length;
-    expect(marked(), 1);
+    int offAxis(GameSession s) => List.generate(25, (i) => i).firstWhere((i) => s.board.grid.partnerOf(s.target, i) != i);
 
+    // 클래식: 보인다
+    await _openStage(tester, '5x5');
+    await tester.pump(const Duration(milliseconds: 2000));
+    ctrl.tapCell(offAxis(container.read(gameProvider)!));
+    await tester.pump();
+    expect(marked(), 1);
     container.read(settingsProvider.notifier).setPairPreview(false);
     await tester.pump();
+    expect(marked(), 0);
+    container.read(settingsProvider.notifier).setPairPreview(true);
+
+    // 러시: 켜져 있어도 안 보인다
+    ctrl.start(GameMode.rush);
+    await tester.pump(const Duration(milliseconds: 2000));
+    ctrl.tapCell(offAxis(container.read(gameProvider)!));
+    await tester.pump();
+    expect(container.read(gameProvider)!.selected, isNotNull);
     expect(marked(), 0);
     ctrl.quit();
     await _cleanup(tester);
