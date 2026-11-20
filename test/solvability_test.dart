@@ -135,6 +135,12 @@ void main() {
           expect(s!.moveCount, p.par, reason: reason);
           expect(_replay(p, s), isTrue, reason: reason);
           expect(p.par, inInclusiveRange(c.minPar, c.maxPar), reason: reason);
+          expect(p.par, Rules.stagePar(d, stage), reason: reason);
+          if (stage > 1) {
+            expect(p.par, greaterThanOrEqualTo(stagePuzzle(d, stage - 1).par), reason: '앞 탄보다 쉬워짐: $reason');
+          }
+          final intro = Rules.stageIntroType(stage);
+          if (intro != null) expect(p.target, intro, reason: '새 대칭 소개: $reason');
           expect(c.types, contains(p.target), reason: reason);
           expect(p.maxMoves - p.par, Rules.stageSlack(stage), reason: reason);
           expect(seen.add('${p.board.code}:${p.target.name}'), isTrue, reason: '중복: $reason');

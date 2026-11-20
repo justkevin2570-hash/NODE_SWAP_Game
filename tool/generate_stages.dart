@@ -20,7 +20,7 @@ void main() {
     ..writeln()
     ..writeln('const Map<BoardSize, List<(String, String, int)>> stageData = {');
   for (final b in BoardSize.values) {
-    final rng = Random(20261120 + b.size * 7919);
+    final rng = Random(20261121 + b.size * 7919);
     final gen = PuzzleGenerator(rng);
     final seen = <String>{};
     out.writeln('  BoardSize.${b.name}: [');
@@ -28,18 +28,20 @@ void main() {
     final sw = Stopwatch()..start();
     for (int stage = 1; stage <= Rules.stageCount; stage++) {
       final c = Rules.stageCurve(b, stage);
-      // 같은 대칭이 연달아 나오지 않게 고른다
+      final par = Rules.stagePar(b, stage);
+      // 새 대칭을 소개하는 탄이면 그 대칭, 아니면 같은 대칭이 연달아 나오지 않게 고른다
+      final intro = Rules.stageIntroType(stage);
       final choices = c.types.where((t) => t != last || c.types.length == 1).toList();
-      final type = choices[rng.nextInt(choices.length)];
-      // 범위 안에서 탄마다 목표 최소 이동을 정해, 같은 구간 안에서도 뒤로 갈수록 조금씩 어려워지게 한다
+      final type = intro ?? choices[rng.nextInt(choices.length)];
+      // 정해진 최소 이동 수와 정확히 같은 퍼즐이 나올 때까지 만든다
       Puzzle? p;
-      for (int tries = 0; tries < 400; tries++) {
+      for (int tries = 0; tries < 2000; tries++) {
         final cand = gen.generate(
-          PuzzleSpec(scrambleSwaps: c.maxPar, slack: 0, types: [type], size: b.size),
+          PuzzleSpec(scrambleSwaps: par, slack: 0, types: [type], size: b.size),
           forcedType: type,
         );
         final key = '${cand.board.code}:${cand.target.name}';
-        if (cand.par >= c.minPar && cand.par <= c.maxPar && !seen.contains(key)) {
+        if (cand.par == par && !seen.contains(key)) {
           seen.add(key);
           p = cand;
           break;

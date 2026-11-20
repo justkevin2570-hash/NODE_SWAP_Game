@@ -124,6 +124,29 @@ abstract final class Rules {
     return (minPar: lo, maxPar: hi, types: band == 0 ? hv : band == 1 ? hvp : all);
   }
 
+  /// 탄마다 정해진 최소 이동 수. 구간([stageCurve]) 범위를 탄 번호 순서대로 고르게 나눠서,
+  /// 1탄부터 100탄까지 한 번도 줄지 않고 조금씩 늘어난다.
+  static int stagePar(BoardSize b, int stage) {
+    final c = stageCurve(b, stage);
+    final (start, end) = stage <= 20
+        ? (1, 20)
+        : stage <= 50
+            ? (21, 50)
+            : stage <= 80
+                ? (51, 80)
+                : (81, 100);
+    final steps = c.maxPar - c.minPar + 1;
+    return c.minPar + (stage - start) * steps ~/ (end - start + 1);
+  }
+
+  /// 새 대칭이 처음 나오는 탄은 그 대칭을 소개한다: 21탄 점대칭, 51탄 {y = x}, 52탄 {y = -x}.
+  static SymmetryType? stageIntroType(int stage) => switch (stage) {
+        21 => SymmetryType.point,
+        51 => SymmetryType.diagonalUp,
+        52 => SymmetryType.diagonalDown,
+        _ => null,
+      };
+
   /// 최소 이동에 더해 주는 여유 이동: 1~30탄 +2, 31~70탄 +1, 71~100탄 +0.
   static int stageSlack(int stage) => stage <= 30
       ? 2
