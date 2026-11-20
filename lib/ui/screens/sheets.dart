@@ -69,7 +69,7 @@ class _ClassicSheet extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('클래식 모드', style: TextStyles.title),
+        const Text('스테이지 모드', style: TextStyles.title),
         const SizedBox(height: 4),
         Text(
           '판 크기마다 100탄! 원하는 크기를 골라 보세요',
@@ -164,7 +164,7 @@ class _SettingsSheet extends ConsumerWidget {
             children: [
               const Icon(Icons.compare_arrows_rounded, color: Palette.inkSoft),
               const SizedBox(width: 10),
-              const Expanded(child: Text('짝 칸 표시 (클래식에서 타일을 고르면 대칭 짝을 보여줘요)', style: TextStyles.body)),
+              const Expanded(child: Text('짝 칸 표시 (타일을 고르면 대칭 짝을 보여줘요, 러시 제외)', style: TextStyles.body)),
               Switch(value: s.pairPreview, onChanged: n.setPairPreview),
             ],
           ),

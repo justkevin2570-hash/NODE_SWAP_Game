@@ -124,7 +124,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                     BubblyButton(
                       label: '러시 시작',
                       subtitle: records.rushBestScore > 0
-                          ? '최고 ${RollingNumber.formatInt(records.rushBestScore)}점 (${records.rushBestStage}스테이지)'
+                          ? '최고 ${RollingNumber.formatInt(records.rushBestScore)}점 (${records.rushBestStage}번째 퍼즐)'
                           : '60초 동안 최대한 많이!',
                       icon: Icons.bolt_rounded,
                       color: Palette.pink,
@@ -140,7 +140,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                       children: [
                         Expanded(
                           child: BubblyButton(
-                            label: '클래식',
+                            label: '스테이지',
                             icon: Icons.extension_rounded,
                             color: Palette.sky,
                             deep: Palette.skyDeep,

@@ -303,7 +303,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                   '${Rules.feverEvery}콤보마다 피버 타임! 시간이 멈추고 점수 2배.'),
               _tip(Icons.undo_rounded, Palette.danger,
                   '막히면 되돌리기로 무르거나, 패스(-3초)로 다음 퍼즐로 넘어가요.'),
-              _tip(Icons.call_made_rounded, Palette.peachDeep, '6스테이지부터 {y = x}, {y = -x} 대칭도 나와요.'),
+              _tip(Icons.call_made_rounded, Palette.peachDeep, '6번째 퍼즐부터 {y = x}, {y = -x} 대칭도 나와요.'),
             ],
           ),
         ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2),

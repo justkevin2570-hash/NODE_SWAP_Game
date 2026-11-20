@@ -81,7 +81,7 @@ class _StageMapScreenState extends ConsumerState<StageMapScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('클래식 | ${d.label}', style: TextStyles.title.copyWith(fontSize: 24)),
+                            Text('스테이지 | ${d.label}', style: TextStyles.title.copyWith(fontSize: 24)),
                             Text('$cleared / ${Rules.stageCount}탄 클리어', style: TextStyles.caption),
                           ],
                         ),

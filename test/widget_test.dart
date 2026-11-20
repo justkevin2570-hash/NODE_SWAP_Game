@@ -37,7 +37,7 @@ Future<ProviderContainer> _pumpApp(WidgetTester tester, {Map<String, Object> pre
 
 /// 타이틀 → 클래식 → 난이도 → 스테이지 맵 → [stage]탄 시작 (카운트다운 전까지).
 Future<void> _openStage(WidgetTester tester, String boardSize, {int stage = 1}) async {
-  await tester.tap(find.text('클래식'));
+  await tester.tap(find.text('스테이지'));
   await tester.pump();
   for (int i = 0; i < 6; i++) {
     await tester.pump(const Duration(milliseconds: 100));
@@ -64,7 +64,7 @@ void main() {
   testWidgets('타이틀 화면이 뜬다', (tester) async {
     await _pumpApp(tester);
     expect(find.text('러시 시작'), findsOneWidget);
-    expect(find.text('클래식'), findsOneWidget);
+    expect(find.text('스테이지'), findsOneWidget);
     expect(find.byType(BoardView), findsOneWidget);
     await _cleanup(tester);
   });
@@ -654,7 +654,7 @@ void main() {
 
     testWidgets('판 크기: 5x5·7x7·9x9 모두 처음부터 열려 있다', (tester) async {
       await _pumpApp(tester, prefs: {'tutorialSeen': true});
-      await tester.tap(find.text('클래식'));
+      await tester.tap(find.text('스테이지'));
       await tester.pump();
       for (int i = 0; i < 6; i++) {
         await tester.pump(const Duration(milliseconds: 100));
@@ -666,7 +666,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(find.byType(StageMapScreen), findsOneWidget);
-      expect(find.text('클래식 | 9x9'), findsOneWidget);
+      expect(find.text('스테이지 | 9x9'), findsOneWidget);
       await _cleanup(tester);
     });
 
@@ -690,7 +690,7 @@ void main() {
 
     testWidgets('잠긴 탄은 눌러도 시작되지 않고, 게임 중 [목록]은 맵으로 돌아간다', (tester) async {
       final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
-      await tester.tap(find.text('클래식'));
+      await tester.tap(find.text('스테이지'));
       await tester.pump();
       for (int i = 0; i < 6; i++) {
         await tester.pump(const Duration(milliseconds: 100));

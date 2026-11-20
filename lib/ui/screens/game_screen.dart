@@ -370,7 +370,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         Pill(
           child: Column(
             children: [
-              Text(widget.mode == GameMode.rush ? 'STAGE' : 'MOVES', style: TextStyles.caption.copyWith(fontSize: 11)),
+              Text(widget.mode == GameMode.rush ? 'PUZZLE' : 'MOVES', style: TextStyles.caption.copyWith(fontSize: 11)),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 transitionBuilder: (child, a) => ScaleTransition(scale: a, child: child),
