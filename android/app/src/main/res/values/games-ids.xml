@@ -3,5 +3,5 @@
      비어 있으면 앱은 Play 게임즈를 초기화하지 않고, 랭킹 기능만 꺼진 채로 정상 동작한다.
      Dart 쪽 리더보드 ID 는 lib/online/play_games_config.dart 에 있다. -->
 <resources>
-    <string name="game_services_project_id" translatable="false"></string>
+    <string name="game_services_project_id" translatable="false">377349310346</string>
 </resources>
