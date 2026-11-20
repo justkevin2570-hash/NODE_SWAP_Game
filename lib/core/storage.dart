@@ -162,12 +162,6 @@ class StageProgress {
   int nextStage(BoardSize d) => (clearedCount(d) + 1).clamp(1, Rules.stageCount);
 
   int totalStars(BoardSize d) => stars[d]!.fold(0, (a, b) => a + b);
-
-  /// 이 크기를 할 수 있는지: 5×5 는 처음부터, 7×7·9×9 는 앞 크기를 [Rules.sizeUnlockAt]탄 깨면 열린다.
-  bool isSizeUnlocked(BoardSize d) {
-    final prev = d.previous;
-    return prev == null || clearedCount(prev) >= Rules.sizeUnlockAt;
-  }
 }
 
 class StageProgressNotifier extends Notifier<StageProgress> {

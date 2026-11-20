@@ -72,60 +72,38 @@ class _ClassicSheet extends ConsumerWidget {
         const Text('클래식 모드', style: TextStyles.title),
         const SizedBox(height: 4),
         Text(
-          '판 크기마다 100탄! 쉬운 탄부터 차례로 깨 보세요',
+          '판 크기마다 100탄! 원하는 크기를 골라 보세요',
           style: TextStyles.caption.copyWith(fontSize: 15),
         ),
         const SizedBox(height: 18),
         for (final b in BoardSize.values) ...[
-          if (progress.isSizeUnlocked(b)) ...[
-            BubblyButton(
-              label: b.label,
-              subtitle: '탄마다 ${Rules.classicTimeMs(b) ~/ 1000}초',
-              color: boardSizeColors(b).$1,
-              deep: boardSizeColors(b).$2,
-              width: double.infinity,
-              height: 70,
-              fontSize: 24,
-              onPressed: () => Navigator.of(context).pop(b),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 12),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.star_rounded, size: 18, color: Palette.butterDeep),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${progress.totalStars(b)} / ${Rules.stageCount * 3}   |   ${progress.clearedCount(b)} / ${Rules.stageCount}탄',
-                      style: TextStyles.caption,
-                    ),
-                  ],
-                ),
+          BubblyButton(
+            label: b.label,
+            subtitle: '탄마다 ${Rules.classicTimeMs(b) ~/ 1000}초',
+            color: boardSizeColors(b).$1,
+            deep: boardSizeColors(b).$2,
+            width: double.infinity,
+            height: 70,
+            fontSize: 24,
+            onPressed: () => Navigator.of(context).pop(b),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 12),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.star_rounded, size: 18, color: Palette.butterDeep),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${progress.totalStars(b)} / ${Rules.stageCount * 3}   |   ${progress.clearedCount(b)} / ${Rules.stageCount}탄',
+                    style: TextStyles.caption,
+                  ),
+                ],
               ),
             ),
-          ] else ...[
-            BubblyButton(
-              label: b.label,
-              subtitle: '${b.previous!.label} ${Rules.sizeUnlockAt}탄을 깨면 열려요',
-              icon: Icons.lock_rounded,
-              color: const Color(0xFFE9E5F2),
-              deep: Palette.inkFaint,
-              labelColor: Palette.inkSoft,
-              width: double.infinity,
-              height: 70,
-              fontSize: 24,
-              onPressed: null,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 12),
-              child: Text(
-                '${b.previous!.label}  ${progress.clearedCount(b.previous!).clamp(0, Rules.sizeUnlockAt)} / ${Rules.sizeUnlockAt}탄',
-                style: TextStyles.caption,
-              ),
-            ),
-          ],
+          ),
         ],
       ],
     );

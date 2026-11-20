@@ -62,7 +62,6 @@ class GameSession {
     this.stuck = false,
     this.stageNumber,
     this.starGain = 0,
-    this.unlockedSize,
     this.dailyKey,
     this.dailyStreak = 0,
   });
@@ -119,8 +118,6 @@ class GameSession {
   /// 이번 클리어로 늘어난 별 수 (클래식 스테이지).
   final int starGain;
 
-  /// 이번 클리어로 새로 열린 판 크기 (클래식, 없으면 null).
-  final BoardSize? unlockedSize;
 
   /// 오늘의 퍼즐이면 그 날짜 (예: 2026-11-20). 클래식 모드로 진행된다.
   final String? dailyKey;
@@ -176,7 +173,6 @@ class GameSession {
     bool? canUndoMove,
     bool? stuck,
     int? starGain,
-    BoardSize? unlockedSize,
     int? dailyStreak,
   }) {
     return GameSession(
@@ -211,7 +207,6 @@ class GameSession {
       stuck: stuck ?? this.stuck,
       stageNumber: stageNumber,
       starGain: starGain ?? this.starGain,
-      unlockedSize: unlockedSize ?? this.unlockedSize,
       dailyKey: dailyKey,
       dailyStreak: dailyStreak ?? this.dailyStreak,
     );

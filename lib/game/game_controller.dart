@@ -475,13 +475,9 @@ class GameController extends Notifier<GameSession?> {
         remainingMs: s.remainingMs,
         stars: stars,
       );
-      final nextSize = s.boardSize.index + 1 < BoardSize.values.length ? BoardSize.values[s.boardSize.index + 1] : null;
-      bool sizeOpen() => nextSize != null && ref.read(stageProgressProvider).isSizeUnlocked(nextSize);
-      final wasOpen = sizeOpen();
       final gain = s.stageNumber == null
           ? 0
           : ref.read(stageProgressProvider.notifier).record(s.boardSize, s.stageNumber!, stars);
-      final unlocked = !wasOpen && sizeOpen() ? nextSize : null;
       final key = s.dailyKey;
       var streak = 0;
       if (key != null) {
@@ -494,7 +490,6 @@ class GameController extends Notifier<GameSession?> {
         stars: stars,
         score: score,
         starGain: gain,
-        unlockedSize: unlocked,
         dailyStreak: streak,
         newRecord: gain > 0,
         cleared: 1,

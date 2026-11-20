@@ -19,8 +19,6 @@ enum BoardSize {
 
   String get label => '${size}x$size'; // Jua 글꼴에 × 기호가 없어서 x 를 쓴다
 
-  /// 바로 앞 크기 (5×5 는 null).
-  BoardSize? get previous => index == 0 ? null : BoardSize.values[index - 1];
 }
 
 /// 게임 밸런스 수치는 모두 여기에 모아 둔다.
@@ -102,8 +100,6 @@ abstract final class Rules {
   // ── 클래식 모드 (판 크기별 100탄) ──────────────────────
   static const int stageCount = 100;
 
-  /// 앞 크기를 이만큼 깨면 다음 크기(7×7, 9×9)가 열린다.
-  static const int sizeUnlockAt = 30;
 
   /// 탄 번호(1~100)에 따른 최소 이동 범위와 나오는 대칭. 탄이 올라갈수록 조금씩 어려워진다.
   /// 이 곡선으로 tool/generate_stages.dart 가 퍼즐을 미리 만들어 stages_data.dart 에 저장한다.

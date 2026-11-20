@@ -202,23 +202,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                       onPlay: (c) => c.repeat(reverse: true),
                                     )
                                     .scaleXY(end: 1.08, duration: 600.ms),
-                              if (s.unlockedSize != null) ...[
-                                const SizedBox(height: 8),
-                                Pill(
-                                  color: Palette.mint,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.lock_open_rounded, size: 18, color: Palette.ink),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '${s.unlockedSize!.label} 클래식이 열렸어요!',
-                                        style: TextStyles.body.copyWith(color: Palette.ink),
-                                      ),
-                                    ],
-                                  ),
-                                ).animate().fadeIn(delay: 600.ms).scaleXY(begin: 0.6, curve: Curves.easeOutBack),
-                              ],
                               if (_weekly != null) ...[
                                 const SizedBox(height: 8),
                                 Pill(

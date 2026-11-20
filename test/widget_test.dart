@@ -652,45 +652,27 @@ void main() {
       await _cleanup(tester);
     });
 
-    testWidgets('판 크기: 7×7 은 5×5 30탄을 깨야 열리고, 열리면 7×7 판으로 시작한다', (tester) async {
-      // 29탄까지만 깬 상태: 7×7 은 잠겨 있다
-      final container = await _pumpApp(tester, prefs: {'tutorialSeen': true, 'stageStars_5x5': '3' * 29});
-      expect(container.read(stageProgressProvider).isSizeUnlocked(BoardSize.seven), isFalse);
+    testWidgets('판 크기: 5x5·7x7·9x9 모두 처음부터 열려 있다', (tester) async {
+      await _pumpApp(tester, prefs: {'tutorialSeen': true});
       await tester.tap(find.text('클래식'));
       await tester.pump();
       for (int i = 0; i < 6; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
-      expect(find.text('5x5 30탄을 깨면 열려요'), findsOneWidget);
-      await tester.tap(find.text('7x7'));
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(find.byType(StageMapScreen), findsNothing); // 눌러도 안 열린다
+      expect(find.byIcon(Icons.lock_rounded), findsNothing);
+      await tester.tap(find.text('9x9'));
+      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(StageMapScreen), findsOneWidget);
+      expect(find.text('클래식 | 9x9'), findsOneWidget);
       await _cleanup(tester);
-
-      // 30탄을 깨면 열리고, 결과에 새로 열린 크기가 표시된다
-      final ctrl = container.read(gameProvider.notifier);
-      ctrl.start(GameMode.classic, boardSize: BoardSize.five, stage: 30);
-      await tester.pump(const Duration(milliseconds: 2000));
-      solve(container);
-      final done = container.read(gameProvider)!;
-      expect(done.won, isTrue);
-      expect(done.unlockedSize, BoardSize.seven);
-      expect(container.read(stageProgressProvider).isSizeUnlocked(BoardSize.seven), isTrue);
-      // 다시 깨도 "새로 열림"은 한 번만
-      ctrl.start(GameMode.classic, boardSize: BoardSize.five, stage: 30);
-      await tester.pump(const Duration(milliseconds: 2000));
-      solve(container);
-      expect(container.read(gameProvider)!.unlockedSize, isNull);
-      ctrl.quit();
-      expect(container.read(stageProgressProvider).isSizeUnlocked(BoardSize.nine), isFalse);
     });
 
     testWidgets('7×7·9×9 탄도 보드 크기에 맞게 그려지고 최적 풀이로 클리어된다', (tester) async {
-      for (final (b, prefs) in [
-        (BoardSize.seven, {'stageStars_5x5': '3' * 30}),
-        (BoardSize.nine, {'stageStars_5x5': '3' * 30, 'stageStars_7x7': '3' * 30}),
-      ]) {
-        final container = await _pumpApp(tester, prefs: {'tutorialSeen': true, ...prefs});
+      for (final b in [BoardSize.seven, BoardSize.nine]) {
+        final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
         await _openStage(tester, b.label);
         await tester.pump(const Duration(milliseconds: 2000));
         final s = container.read(gameProvider)!;
