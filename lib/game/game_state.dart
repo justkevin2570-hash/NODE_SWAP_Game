@@ -63,6 +63,8 @@ class GameSession {
     this.stageNumber,
     this.starGain = 0,
     this.unlockedSize,
+    this.dailyKey,
+    this.dailyStreak = 0,
   });
 
   final GameMode mode;
@@ -120,6 +122,13 @@ class GameSession {
   /// 이번 클리어로 새로 열린 판 크기 (클래식, 없으면 null).
   final BoardSize? unlockedSize;
 
+  /// 오늘의 퍼즐이면 그 날짜 (예: 2026-11-20). 클래식 모드로 진행된다.
+  final String? dailyKey;
+  bool get isDaily => dailyKey != null;
+
+  /// 오늘의 퍼즐을 푼 뒤의 연속 일수.
+  final int dailyStreak;
+
   bool get canUndo => canAct && canUndoMove && undosLeft > 0;
 
   SymmetryType get target => puzzle.target;
@@ -168,6 +177,7 @@ class GameSession {
     bool? stuck,
     int? starGain,
     BoardSize? unlockedSize,
+    int? dailyStreak,
   }) {
     return GameSession(
       mode: mode,
@@ -202,6 +212,8 @@ class GameSession {
       stageNumber: stageNumber,
       starGain: starGain ?? this.starGain,
       unlockedSize: unlockedSize ?? this.unlockedSize,
+      dailyKey: dailyKey,
+      dailyStreak: dailyStreak ?? this.dailyStreak,
     );
   }
 }

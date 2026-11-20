@@ -199,6 +199,40 @@ void main() {
     await _cleanup(tester);
   });
 
+  testWidgets('오늘의 퍼즐: 타이틀에서 시작 → 풀면 1일 연속, 타이틀에 완료 표시', (tester) async {
+    final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+    expect(find.text('오늘의 퍼즐'), findsOneWidget);
+    await tester.tap(find.text('오늘의 퍼즐'));
+    await tester.pump();
+    for (int i = 0; i < 25; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final s = container.read(gameProvider)!;
+    expect(s.isDaily, isTrue);
+    expect(s.stageNumber, isNull);
+    expect(find.textContaining('오늘의 퍼즐'), findsOneWidget);
+    final sol = Solver(s.target).solve(s.board, maxDepth: s.movesLeft)!;
+    final ctrl = container.read(gameProvider.notifier);
+    for (final (a, b) in sol.swaps) {
+      ctrl.swap(a, b);
+    }
+    if (sol.needsRotation) ctrl.rotate();
+    final done = container.read(gameProvider)!;
+    expect(done.won, isTrue);
+    expect(done.dailyStreak, 1);
+    await tester.pump(const Duration(milliseconds: 1700));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('1일 연속'), findsOneWidget);
+    expect(find.text('다음 탄'), findsNothing);
+    expect(find.text('다시 하기'), findsOneWidget);
+    await tester.tap(find.text('홈으로'));
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.textContaining('오늘 완료!'), findsOneWidget);
+    await _cleanup(tester);
+  });
+
   testWidgets('클래식: 풀면 별과 함께 결과 화면', (tester) async {
     final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
     await _openStage(tester, '5x5');

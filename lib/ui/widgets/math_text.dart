@@ -25,11 +25,14 @@ List<InlineSpan> mathSpans(String formula, {required double fontSize, required C
       // 이탤릭 글자는 오른쪽으로 기울어서 뒤 글자와 붙어 보이므로 아주 살짝 띄운다.
       spans.add(TextSpan(text: ch, style: variable));
       spans.add(TextSpan(text: ' ', style: symbol.copyWith(fontSize: fontSize * 0.25)));
+    } else if (ch == ',') {
+      // 수식 글꼴에는 쉼표가 없어서 바깥 글꼴(Jua)로 그린다: (x, y)
+      spans.add(TextSpan(text: ', ', style: TextStyle(fontSize: fontSize * 0.85, color: color)));
     } else if (ch == '=' || ch == '+') {
       spans.add(TextSpan(text: ' $ch ', style: symbol));
     } else if (ch == '-') {
       // 앞에 피연산자가 없으면 부호(−x), 있으면 빼기(a − b)
-      final binary = i > 0 && RegExp(r'[A-Za-z0-9)]').hasMatch(chars[i - 1]);
+      final binary = i > 0 && RegExp(r'[A-Za-z0-9)]').hasMatch(chars[i - 1]); // '(' 나 ',' 뒤는 부호
       spans.add(TextSpan(text: binary ? ' − ' : '−', style: symbol));
     } else {
       spans.add(TextSpan(text: ch, style: symbol));

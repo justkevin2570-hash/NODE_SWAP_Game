@@ -2,7 +2,7 @@ name: node_swap_game
 description: "Symmetry Rush - 파스텔 대칭 퍼즐 러시"
 publish_to: 'none'
 
-version: 2.2.1+8
+version: 2.3.0+9
 
 environment:
   sdk: ^3.12.0
@@ -18,6 +18,8 @@ dependencies:
   just_audio: ^0.10.6
   audio_session: ^0.2.4
   games_services: ^5.3.0
+  url_launcher: ^6.3.3
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:

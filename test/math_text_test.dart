@@ -21,6 +21,14 @@ void main() {
     expect(_plain(spans).contains(' = '), isTrue);
   });
 
+  test('좌표 (x, y): 쉼표는 바깥 글꼴, 괄호 뒤 빼기는 부호', () {
+    final spans = mathSpans('(-y, -x)', fontSize: 20, color: Colors.black).cast<TextSpan>();
+    final comma = spans.firstWhere((s) => s.text!.contains(','));
+    expect(comma.style!.fontFamily, isNull); // 수식 글꼴에 쉼표가 없다
+    expect(spans.where((s) => s.text == '−').length, 2);
+    expect(_plain(spans).contains(' − '), isFalse);
+  });
+
   test('a - b 처럼 앞에 피연산자가 있으면 빼기 앞뒤를 띄운다', () {
     final spans = mathSpans('a-b', fontSize: 20, color: Colors.black).cast<TextSpan>();
     expect(spans.any((s) => s.text == ' − '), isTrue);

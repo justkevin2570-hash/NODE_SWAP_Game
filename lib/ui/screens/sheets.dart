@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/audio_engine.dart';
+import '../../core/feedback.dart';
 import '../../core/palette.dart';
 import '../../core/storage.dart';
 import '../../core/theme.dart';
@@ -190,6 +191,27 @@ class _SettingsSheet extends ConsumerWidget {
             ],
           ),
         ),
+        if (feedbackAvailable) ...[
+          const SizedBox(height: 12),
+          BubblyButton(
+            label: '의견 보내기',
+            icon: Icons.mail_outline_rounded,
+            color: Palette.lavender,
+            deep: Palette.lavenderDeep,
+            height: 48,
+            fontSize: 17,
+            width: double.infinity,
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.maybeOf(context);
+              if (!await sendFeedback()) {
+                messenger?.showSnackBar(SnackBar(
+                  content: Text('메일 앱을 열 수 없어요. $kFeedbackEmail 로 보내 주세요.', style: TextStyles.body),
+                  backgroundColor: Palette.cream,
+                ));
+              }
+            },
+          ),
+        ],
         const SizedBox(height: 12),
         BubblyButton(
           label: '기록 초기화',
@@ -227,6 +249,7 @@ class _SettingsSheet extends ConsumerWidget {
             if (ok == true) {
               ref.read(recordsProvider.notifier).reset();
               ref.read(stageProgressProvider.notifier).reset();
+              ref.read(dailyProgressProvider.notifier).reset();
             }
           },
         ),

@@ -225,5 +225,11 @@ void main() {
     final s4 = Solver(lessons[3].target).solve(lessons[3].board)!;
     expect(s4.moveCount, 1);
     expect(s4.needsRotation, isFalse);
+    expect(lessons.length, 5);
+    expect(lessons.map((l) => l.target).toSet(), SymmetryType.values.toSet()..remove(SymmetryType.vertical));
+    final s5 = Solver(lessons[4].target).solve(lessons[4].board)!;
+    expect(lessons[4].target, SymmetryType.diagonalUp);
+    expect(s5.moveCount, 1);
+    expect(s5.needsRotation, isFalse);
   });
 }

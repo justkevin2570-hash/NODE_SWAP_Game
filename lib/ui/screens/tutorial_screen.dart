@@ -237,7 +237,10 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('${_step + 1}. ${_lesson.title}', style: TextStyles.title.copyWith(fontSize: 24)),
+                    Flexible(
+                      child: MathRichText('${_step + 1}. ${_lesson.title}',
+                          textAlign: TextAlign.center, style: TextStyles.title.copyWith(fontSize: 24)),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -298,7 +301,8 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
               _tip(Icons.bolt_rounded, Palette.pinkDeep, '8초 안에 연달아 풀면 콤보가 쌓여요.'),
               _tip(Icons.local_fire_department_rounded, Palette.butterDeep,
                   '${Rules.feverEvery}콤보마다 피버 타임! 시간이 멈추고 점수 2배.'),
-              _tip(Icons.block_rounded, Palette.danger, '더 이상 풀 수 없으면 바로 다음 퍼즐로 넘어가요 (-4초).'),
+              _tip(Icons.undo_rounded, Palette.danger,
+                  '막히면 되돌리기로 무르거나, 패스(-3초)로 다음 퍼즐로 넘어가요.'),
               _tip(Icons.call_made_rounded, Palette.peachDeep, '6스테이지부터 {y = x}, {y = -x} 대칭도 나와요.'),
             ],
           ),

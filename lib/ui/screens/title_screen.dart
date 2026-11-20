@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import '../../core/palette.dart';
 import '../../core/storage.dart';
 import '../../core/theme.dart';
 import '../../game/logic/board.dart';
+import '../../game/logic/daily.dart';
 import '../../online/leaderboard.dart';
 import '../../game/logic/generator.dart';
 import '../../game/logic/rules.dart';
@@ -53,6 +55,17 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
     _go(seen ? const GameScreen(mode: GameMode.rush) : const TutorialScreen(then: GameMode.rush));
   }
 
+  /// 오늘의 퍼즐: 날짜마다 같은 퍼즐 한 판 (클래식 규칙).
+  void _openDaily() {
+    final now = clock.now();
+    _go(GameScreen(
+      mode: GameMode.classic,
+      boardSize: dailySize(now),
+      puzzle: dailyPuzzle(now),
+      dailyKey: dailyKey(now),
+    ));
+  }
+
   Future<void> _openClassic() async {
     final d = await showClassicSheet(context);
     if (d != null && mounted) _go(StageMapScreen(boardSize: d));
@@ -61,6 +74,15 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
   @override
   Widget build(BuildContext context) {
     final records = ref.watch(recordsProvider);
+    final daily = ref.watch(dailyProgressProvider);
+    final now = clock.now();
+    final today = dailyKey(now);
+    final streak = daily.streakOn(today, dailyYesterdayKey(now));
+    final dailyText = daily.clearedOn(today)
+        ? '오늘 완료!  $streak일 연속'
+        : streak > 0
+            ? '${dailySize(now).label}  |  $streak일 연속 도전 중'
+            : '${dailySize(now).label}  |  매일 새로운 한 판';
     return Scaffold(
       body: PastelBackground(
         child: SafeArea(
@@ -139,6 +161,18 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                         ),
                       ],
                     ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.5, curve: Curves.easeOutBack),
+                    const SizedBox(height: 12),
+                    BubblyButton(
+                      label: '오늘의 퍼즐',
+                      subtitle: dailyText,
+                      icon: daily.clearedOn(today) ? Icons.check_circle_rounded : Icons.today_rounded,
+                      color: Palette.butter,
+                      deep: Palette.butterDeep,
+                      width: double.infinity,
+                      height: 60,
+                      fontSize: 20,
+                      onPressed: _openDaily,
+                    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.5, curve: Curves.easeOutBack),
                   ],
                 );
               }),

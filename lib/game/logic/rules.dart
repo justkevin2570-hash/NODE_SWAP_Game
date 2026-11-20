@@ -135,6 +135,16 @@ abstract final class Rules {
           ? 1
           : 0;
 
+  // ── 오늘의 퍼즐 ───────────────────────────────────────
+  /// 판 크기별 최소 이동 범위 (그 크기의 중간~뒤쪽 탄 정도).
+  static (int, int) dailyPar(BoardSize b) => switch (b) {
+        BoardSize.five => (4, 5),
+        BoardSize.seven => (5, 6),
+        BoardSize.nine => (6, 7),
+      };
+
+  static const int dailySlack = 1;
+
   static int classicTimeMs(BoardSize b) => switch (b) {
         BoardSize.five => 60000,
         BoardSize.seven => 90000,

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -213,3 +215,61 @@ class StageProgressNotifier extends Notifier<StageProgress> {
 
 final stageProgressProvider = NotifierProvider<StageProgressNotifier, StageProgress>(StageProgressNotifier.new);
 
+// ── 오늘의 퍼즐 ─────────────────────────────────────────────
+/// 오늘의 퍼즐 기록: 마지막으로 푼 날, 그날 별, 연속 일수, 최고 연속 일수.
+class DailyProgress {
+  const DailyProgress({this.lastDay, this.lastStars = 0, this.streak = 0, this.bestStreak = 0});
+
+  final String? lastDay;
+  final int lastStars;
+  final int streak;
+  final int bestStreak;
+
+  bool clearedOn(String day) => lastDay == day;
+
+  /// 오늘 기준 이어지고 있는 연속 일수 (어제나 오늘 풀었으면 유지, 아니면 0).
+  int streakOn(String today, String yesterday) =>
+      lastDay == today || lastDay == yesterday ? streak : 0;
+}
+
+class DailyProgressNotifier extends Notifier<DailyProgress> {
+  SharedPreferences get _p => ref.read(prefsProvider);
+
+  @override
+  DailyProgress build() {
+    final p = ref.watch(prefsProvider);
+    return DailyProgress(
+      lastDay: p.getString('dailyLast'),
+      lastStars: p.getInt('dailyStars') ?? 0,
+      streak: p.getInt('dailyStreak') ?? 0,
+      bestStreak: p.getInt('dailyBest') ?? 0,
+    );
+  }
+
+  /// [day] 의 퍼즐을 별 [stars]개로 풀었다. 그 뒤의 연속 일수를 돌려준다.
+  int record(String day, String yesterday, int stars) {
+    final s = state;
+    final DailyProgress next;
+    if (s.lastDay == day) {
+      next = DailyProgress(lastDay: day, lastStars: max(stars, s.lastStars), streak: s.streak, bestStreak: s.bestStreak);
+    } else {
+      final streak = s.lastDay == yesterday ? s.streak + 1 : 1;
+      next = DailyProgress(lastDay: day, lastStars: stars, streak: streak, bestStreak: max(streak, s.bestStreak));
+    }
+    state = next;
+    _p.setString('dailyLast', day);
+    _p.setInt('dailyStars', next.lastStars);
+    _p.setInt('dailyStreak', next.streak);
+    _p.setInt('dailyBest', next.bestStreak);
+    return next.streak;
+  }
+
+  void reset() {
+    for (final k in ['dailyLast', 'dailyStars', 'dailyStreak', 'dailyBest']) {
+      _p.remove(k);
+    }
+    state = build();
+  }
+}
+
+final dailyProgressProvider = NotifierProvider<DailyProgressNotifier, DailyProgress>(DailyProgressNotifier.new);

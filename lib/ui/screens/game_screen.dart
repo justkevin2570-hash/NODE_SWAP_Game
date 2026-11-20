@@ -23,7 +23,11 @@ import '../widgets/pastel_background.dart';
 import 'result_screen.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
-  const GameScreen({super.key, required this.mode, this.boardSize = BoardSize.five, this.stage, this.puzzle});
+  const GameScreen(
+      {super.key, required this.mode, this.boardSize = BoardSize.five, this.stage, this.puzzle, this.dailyKey});
+
+  /// 오늘의 퍼즐이면 그 날짜 키 ([puzzle] 과 함께 준다).
+  final String? dailyKey;
 
   final GameMode mode;
   final BoardSize boardSize;
@@ -65,7 +69,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       onResume: _ctrl.appShown,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _ctrl.start(widget.mode, boardSize: widget.boardSize, stage: widget.stage, puzzle: widget.puzzle);
+      _ctrl.start(widget.mode,
+          boardSize: widget.boardSize, stage: widget.stage, puzzle: widget.puzzle, dailyKey: widget.dailyKey);
     });
   }
 
@@ -254,7 +259,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       child: s == null ? const SizedBox() : _content(s),
                     ),
                   ),
-                  if (s != null && s.phase == Phase.paused) _PauseOverlay(ctrl: _ctrl, mode: widget.mode),
+                  if (s != null && s.phase == Phase.paused) _PauseOverlay(ctrl: _ctrl, mode: widget.mode, daily: s.isDaily),
                 ],
               ),
             ),
@@ -345,7 +350,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         Column(
           key: _scoreKey,
           children: [
-            Text(widget.mode == GameMode.rush ? 'SCORE' : '${widget.boardSize.label} ${s.stageNumber ?? ''}탄',
+            Text(
+                widget.mode == GameMode.rush
+                    ? 'SCORE'
+                    : s.isDaily
+                        ? '오늘의 퍼즐 ${widget.boardSize.label}'
+                        : '${widget.boardSize.label} ${s.stageNumber ?? ''}탄',
                 style: TextStyles.caption),
             RollingNumber(
               value: s.score,
@@ -381,8 +391,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final rush = widget.mode == GameMode.rush;
     final stuck = s.stuck;
     return BubblyButton(
-      label: rush ? '패스 -3초' : '목록',
-      icon: rush ? Icons.fast_forward_rounded : Icons.grid_view_rounded,
+      label: rush ? '패스 -3초' : (s.isDaily ? '나가기' : '목록'),
+      icon: rush ? Icons.fast_forward_rounded : (s.isDaily ? Icons.home_rounded : Icons.grid_view_rounded),
       color: stuck ? Palette.coral : Palette.white,
       deep: stuck ? Palette.coralDeep : Palette.inkFaint,
       labelColor: stuck ? Palette.ink : Palette.inkSoft,
@@ -590,10 +600,11 @@ class GradientBoxBorder extends BoxBorder {
 }
 
 class _PauseOverlay extends ConsumerWidget {
-  const _PauseOverlay({required this.ctrl, required this.mode});
+  const _PauseOverlay({required this.ctrl, required this.mode, this.daily = false});
 
   final GameController ctrl;
   final GameMode mode;
+  final bool daily;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -663,7 +674,7 @@ class _PauseOverlay extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   BubblyButton(
-                    label: mode == GameMode.classic ? '스테이지 목록' : '홈으로',
+                    label: mode == GameMode.classic && !daily ? '스테이지 목록' : '홈으로',
                     icon: Icons.home_rounded,
                     color: Palette.white,
                     deep: Palette.inkFaint,

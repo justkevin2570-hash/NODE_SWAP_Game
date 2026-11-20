@@ -104,9 +104,11 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   children: [
                     const Spacer(),
                     Text(
-                      classic
-                          ? '${s.boardSize.label} ${s.stageNumber ?? ''}탄'
-                          : '러시 모드',
+                      s.isDaily
+                          ? '오늘의 퍼즐 ${s.boardSize.label}'
+                          : classic
+                              ? '${s.boardSize.label} ${s.stageNumber ?? ''}탄'
+                              : '러시 모드',
                       style: TextStyles.caption.copyWith(fontSize: 16),
                     ).animate().fadeIn(),
                     const SizedBox(height: 8),
@@ -133,7 +135,24 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
                           child: Column(
                             children: [
-                              if (classic) ...[
+                              if (s.isDaily) ...[
+                                Text('연속 기록', style: TextStyles.caption),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.local_fire_department_rounded,
+                                          color: Palette.peachDeep, size: 44),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        s.won ? '${s.dailyStreak}일 연속' : '-',
+                                        style: TextStyles.number.copyWith(fontSize: 44, color: Palette.ink),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else if (classic) ...[
                                 Text('모은 별', style: TextStyles.caption),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
@@ -242,7 +261,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     ..._playButtons(context),
                     const SizedBox(height: 14),
                     BubblyButton(
-                      label: classic ? '스테이지 목록' : '홈으로',
+                      label: classic && !s.isDaily ? '스테이지 목록' : '홈으로',
                       icon: classic
                           ? Icons.grid_view_rounded
                           : Icons.home_rounded,
@@ -298,7 +317,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
     void newRun() => _go(GameScreen(mode: s.mode, boardSize: s.boardSize));
     void retry() => _go(
-      GameScreen(mode: s.mode, boardSize: s.boardSize, stage: s.stageNumber),
+      GameScreen(
+        mode: s.mode,
+        boardSize: s.boardSize,
+        stage: s.stageNumber,
+        puzzle: s.isDaily ? s.puzzle : null,
+        dailyKey: s.dailyKey,
+      ),
     );
     final stage = s.stageNumber ?? 1;
     final hasNext = stage < Rules.stageCount;
@@ -319,6 +344,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         ],
       ];
     }
+    if (s.isDaily) return [big('다시 하기', Icons.replay_rounded, retry)];
     if (s.won && hasNext) {
       return [
         big('다음 탄', Icons.arrow_forward_rounded, nextStage),
@@ -347,11 +373,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               s.won ? '${(s.remainingMs / 1000).ceil()}초' : '-',
               Palette.skyDeep,
             ),
-            (
-              '진행',
-              '${progress.clearedCount(s.boardSize)} / ${Rules.stageCount}탄',
-              Palette.lavenderDeep,
-            ),
+            s.isDaily
+                ? ('최고 연속', '${ref.read(dailyProgressProvider).bestStreak}일', Palette.lavenderDeep)
+                : (
+                    '진행',
+                    '${progress.clearedCount(s.boardSize)} / ${Rules.stageCount}탄',
+                    Palette.lavenderDeep,
+                  ),
           ];
     return [
       for (final (label, value, color) in items)

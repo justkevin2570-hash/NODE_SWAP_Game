@@ -9,6 +9,7 @@ import '../audio/audio_engine.dart';
 import '../core/storage.dart';
 import 'game_state.dart';
 import 'logic/board.dart';
+import 'logic/daily.dart';
 import 'logic/generator.dart';
 import 'logic/rules.dart';
 import 'logic/solver.dart';
@@ -64,7 +65,9 @@ class GameController extends Notifier<GameSession?> {
   // ── 시작 ────────────────────────────────────────────────
   /// 새 판을 시작한다. 클래식은 [stage]탄(1~100) 퍼즐로 시작한다.
   /// [puzzle] 을 직접 주면 그 퍼즐로 한다 (테스트용).
-  void start(GameMode mode, {BoardSize boardSize = BoardSize.five, int? stage, Puzzle? puzzle}) {
+  /// [dailyKey] 를 주면 오늘의 퍼즐([puzzle])로 진행한다.
+  void start(GameMode mode,
+      {BoardSize boardSize = BoardSize.five, int? stage, Puzzle? puzzle, String? dailyKey}) {
     if (mode == GameMode.classic && stage == null && puzzle == null) stage = 1;
     puzzle = mode == GameMode.rush
         ? _generator.generate(Rules.rushSpec(1))
@@ -83,6 +86,7 @@ class GameController extends Notifier<GameSession?> {
       undosLeft: mode == GameMode.rush ? Rules.rushUndos : Rules.classicUndos(stage ?? 1),
       countdown: 3,
       stageNumber: mode == GameMode.classic ? stage : null,
+      dailyKey: mode == GameMode.classic ? dailyKey : null,
     );
     _analyze();
     _phaseAcc = 0;
@@ -350,6 +354,7 @@ class GameController extends Notifier<GameSession?> {
       boardSize: s.boardSize,
       stage: s.stageNumber,
       puzzle: s.mode == GameMode.classic && s.stageNumber == null ? s.puzzle : null,
+      dailyKey: s.dailyKey,
     );
   }
 
@@ -477,6 +482,12 @@ class GameController extends Notifier<GameSession?> {
           ? 0
           : ref.read(stageProgressProvider.notifier).record(s.boardSize, s.stageNumber!, stars);
       final unlocked = !wasOpen && sizeOpen() ? nextSize : null;
+      final key = s.dailyKey;
+      var streak = 0;
+      if (key != null) {
+        final day = DateTime.parse(key);
+        streak = ref.read(dailyProgressProvider.notifier).record(key, dailyYesterdayKey(day), stars);
+      }
       state = s.copyWith(
         phase: Phase.over,
         won: true,
@@ -484,6 +495,7 @@ class GameController extends Notifier<GameSession?> {
         score: score,
         starGain: gain,
         unlockedSize: unlocked,
+        dailyStreak: streak,
         newRecord: gain > 0,
         cleared: 1,
         lastClearMs: clearMs,
