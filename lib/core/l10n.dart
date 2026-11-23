@@ -154,11 +154,11 @@ const Map<String, String> _en = {
   '좋아요!': 'Got it!',
   '러시 시작!': 'Start Rush!',
   '바꿔서 맞추기': 'Swap to match',
-  '반짝이는 두 타일을 차례로 눌러 자리를 바꿔 보세요.\n점선을 기준으로 왼쪽과 오른쪽이 똑같아지면 성공!':
+  '반짝이는 두 타일을 차례로 눌러\n자리를 바꿔 보세요.\n점선 양쪽이 똑같아지면 성공!':
       'Tap the two glowing tiles one after the other to swap them.\nMake both sides of the dotted line match!',
   '돌려서 맞추기': 'Rotate to match',
-  '위아래는 이미 똑같아요. 회전 버튼으로 보드를 돌리면\n좌우 대칭이 완성돼요. 회전은 공짜예요!':
-      'Top and bottom already match. Rotate the board\nto make it left-right symmetric. Rotating is free!',
+  '위아래는 이미 똑같아요.\n회전 버튼으로 보드를 돌리면\n좌우 대칭이 완성돼요. 회전은 공짜!':
+      'Top and bottom already match.\nRotate the board to make it left-right symmetric. Rotating is free!',
   '점대칭': 'Point symmetry',
   '180도 돌려도 똑같으면 점대칭이에요.\n점 {(x, y)}는 {(-x, -y)}로 옮겨져요.\n타일은 밀어서 바꿔도 돼요!':
       'Point symmetry means it looks the same after a half turn.\nPoint {(x, y)} moves to {(-x, -y)}.\nYou can also drag tiles to swap them!',
@@ -166,6 +166,6 @@ const Map<String, String> _en = {
   '오른쪽 아래로 가는 대각선이 접는 선이에요.\n점 {(x, y)}는 {(-y, -x)}로 옮겨져요.':
       'The diagonal going down to the right is the fold line.\nPoint {(x, y)} moves to {(-y, -x)}.',
   '{y = x} 대칭': '{y = x} symmetry',
-  '이번엔 오른쪽 위로 가는 대각선이 접는 선이에요.\n점 {(x, y)}는 {(y, x)}로! {x}와 {y}가 서로 바뀌어요.':
+  '오른쪽 위로 가는 대각선이 접는 선이에요.\n점 {(x, y)}는 {(y, x)}로 옮겨져요.\n{x}와 {y}가 서로 바뀌죠!':
       'Now the diagonal going up to the right is the fold line.\nPoint {(x, y)} moves to {(y, x)}: {x} and {y} trade places!',
 };

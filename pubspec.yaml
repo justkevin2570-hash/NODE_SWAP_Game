@@ -2,7 +2,7 @@ name: node_swap_game
 description: "Symmetry Rush - 파스텔 대칭 퍼즐 러시"
 publish_to: 'none'
 
-version: 2.4.1+14
+version: 2.5.0+15
 
 environment:
   sdk: ^3.12.0
