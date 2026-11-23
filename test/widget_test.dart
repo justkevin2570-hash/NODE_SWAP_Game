@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:node_swap_game/core/palette.dart';
 import 'package:node_swap_game/app.dart';
 import 'package:node_swap_game/audio/audio_engine.dart';
 import 'package:node_swap_game/core/storage.dart';
@@ -230,6 +231,40 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(find.textContaining('오늘 완료!'), findsOneWidget);
+    await _cleanup(tester);
+  });
+
+  testWidgets('스테이지 화면 위에는 점수 대신 받을 수 있는 별이 보이고, 헛수를 두면 줄어든다', (tester) async {
+    final container = await _pumpApp(tester, prefs: {'tutorialSeen': true});
+    await _openStage(tester, '5x5', stage: 1);
+    await tester.pump(const Duration(milliseconds: 2000));
+    final ctrl = container.read(gameProvider.notifier);
+    var s = container.read(gameProvider)!;
+    expect(s.bestTotal, s.puzzle.par);
+    int lit() => tester
+        .widgetList<Icon>(find.byIcon(Icons.star_rounded))
+        .where((i) => i.color == Palette.butterDeep)
+        .length;
+    expect(lit(), 3);
+    // 최적 풀이에 없는 수(그래도 풀 수는 있는 수)를 둔다
+    final sol = Solver(s.target).solve(s.board, maxDepth: s.movesLeft)!;
+    (int, int)? waste;
+    for (final (a, b) in s.board.grid.adjacentPairs) {
+      if (s.board[a] == s.board[b]) continue;
+      if ({a, b}.containsAll([sol.swaps.first.$1, sol.swaps.first.$2])) continue;
+      final after = s.board.swap(a, b);
+      final rest = Solver(s.target).solve(after, maxDepth: s.movesLeft - 1);
+      if (rest != null && rest.moveCount + 1 > s.puzzle.par) {
+        waste = (a, b);
+        break;
+      }
+    }
+    ctrl.swap(waste!.$1, waste.$2);
+    await tester.pump(const Duration(milliseconds: 400));
+    s = container.read(gameProvider)!;
+    expect(s.bestTotal, greaterThan(s.puzzle.par));
+    expect(lit(), lessThan(3));
+    ctrl.quit();
     await _cleanup(tester);
   });
 

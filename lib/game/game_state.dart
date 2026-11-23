@@ -64,6 +64,7 @@ class GameSession {
     this.starGain = 0,
     this.dailyKey,
     this.dailyStreak = 0,
+    this.bestTotal,
   });
 
   final GameMode mode;
@@ -126,6 +127,10 @@ class GameSession {
   /// 오늘의 퍼즐을 푼 뒤의 연속 일수.
   final int dailyStreak;
 
+  /// 지금 보드에서 최적으로 끝까지 풀면 총 몇 번 이동하게 되는지 (모르면 null).
+  /// 스테이지 화면의 "받을 수 있는 별" 표시에 쓴다.
+  final int? bestTotal;
+
   bool get canUndo => canAct && canUndoMove && undosLeft > 0;
 
   SymmetryType get target => puzzle.target;
@@ -174,6 +179,7 @@ class GameSession {
     bool? stuck,
     int? starGain,
     int? dailyStreak,
+    int? bestTotal,
   }) {
     return GameSession(
       mode: mode,
@@ -209,6 +215,7 @@ class GameSession {
       starGain: starGain ?? this.starGain,
       dailyKey: dailyKey,
       dailyStreak: dailyStreak ?? this.dailyStreak,
+      bestTotal: bestTotal ?? this.bestTotal,
     );
   }
 }

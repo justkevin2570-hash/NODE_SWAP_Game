@@ -8,6 +8,7 @@ import '../../core/storage.dart';
 import '../../core/theme.dart';
 import '../../game/logic/rules.dart';
 import '../widgets/bubbly.dart';
+import '../../core/l10n.dart';
 
 Future<T?> _showGlassSheet<T>(BuildContext context, Widget child) {
   return showModalBottomSheet<T>(
@@ -69,17 +70,17 @@ class _ClassicSheet extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('스테이지 모드', style: TextStyles.title),
+        Text(tr('스테이지 모드'), style: TextStyles.title),
         const SizedBox(height: 4),
         Text(
-          '판 크기마다 100탄! 원하는 크기를 골라 보세요',
+          tr('판 크기마다 100탄! 원하는 크기를 골라 보세요'),
           style: TextStyles.caption.copyWith(fontSize: 15),
         ),
         const SizedBox(height: 18),
         for (final b in BoardSize.values) ...[
           BubblyButton(
             label: b.label,
-            subtitle: '탄마다 ${Rules.classicTimeMs(b) ~/ 1000}초',
+            subtitle: tr('탄마다 {n}초', {'n': Rules.classicTimeMs(b) ~/ 1000}),
             color: boardSizeColors(b).$1,
             deep: boardSizeColors(b).$2,
             width: double.infinity,
@@ -97,7 +98,7 @@ class _ClassicSheet extends ConsumerWidget {
                   const Icon(Icons.star_rounded, size: 18, color: Palette.butterDeep),
                   const SizedBox(width: 4),
                   Text(
-                    '${progress.totalStars(b)} / ${Rules.stageCount * 3}   |   ${progress.clearedCount(b)} / ${Rules.stageCount}탄',
+                    tr('{stars} / {max}   |   {cleared} / {total}탄', {'stars': progress.totalStars(b), 'max': Rules.stageCount * 3, 'cleared': progress.clearedCount(b), 'total': Rules.stageCount}),
                     style: TextStyles.caption,
                   ),
                 ],
@@ -125,17 +126,17 @@ class _SettingsSheet extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('설정', style: TextStyles.title),
+        Text(tr('설정'), style: TextStyles.title),
         const SizedBox(height: 16),
         _SliderRow(
           icon: Icons.music_note_rounded,
-          label: '배경음악',
+          label: tr('배경음악'),
           value: s.musicVolume,
           onChanged: n.setMusicVolume,
         ),
         _SliderRow(
           icon: Icons.volume_up_rounded,
-          label: '효과음',
+          label: tr('효과음'),
           value: s.sfxVolume,
           onChanged: n.setSfxVolume,
           onChangeEnd: (_) => audio.play(Sfx.match3),
@@ -146,7 +147,7 @@ class _SettingsSheet extends ConsumerWidget {
             children: [
               const Icon(Icons.vibration_rounded, color: Palette.inkSoft),
               const SizedBox(width: 10),
-              const Text('진동', style: TextStyles.body),
+              Text(tr('진동'), style: TextStyles.body),
               const Spacer(),
               Switch(
                 value: s.haptics,
@@ -164,7 +165,7 @@ class _SettingsSheet extends ConsumerWidget {
             children: [
               const Icon(Icons.compare_arrows_rounded, color: Palette.inkSoft),
               const SizedBox(width: 10),
-              const Expanded(child: Text('짝 칸 표시 (타일을 고르면 대칭 짝을 보여줘요, 러시 제외)', style: TextStyles.body)),
+              Expanded(child: Text(tr('짝 칸 표시 (타일을 고르면 대칭 짝을 보여줘요, 러시 제외)'), style: TextStyles.body)),
               Switch(value: s.pairPreview, onChanged: n.setPairPreview),
             ],
           ),
@@ -172,7 +173,7 @@ class _SettingsSheet extends ConsumerWidget {
         if (feedbackAvailable) ...[
           const SizedBox(height: 12),
           BubblyButton(
-            label: '의견 보내기',
+            label: tr('의견 보내기'),
             icon: Icons.mail_outline_rounded,
             color: Palette.lavender,
             deep: Palette.lavenderDeep,
@@ -183,7 +184,7 @@ class _SettingsSheet extends ConsumerWidget {
               final messenger = ScaffoldMessenger.maybeOf(context);
               if (!await sendFeedback()) {
                 messenger?.showSnackBar(SnackBar(
-                  content: Text('메일 앱을 열 수 없어요. $kFeedbackEmail 로 보내 주세요.', style: TextStyles.body),
+                  content: Text(tr('메일 앱을 열 수 없어요. {email} 로 보내 주세요.', {'email': kFeedbackEmail}), style: TextStyles.body),
                   backgroundColor: Palette.cream,
                 ));
               }
@@ -192,7 +193,7 @@ class _SettingsSheet extends ConsumerWidget {
         ],
         const SizedBox(height: 12),
         BubblyButton(
-          label: '기록 초기화',
+          label: tr('기록 초기화'),
           icon: Icons.delete_outline_rounded,
           color: Palette.white,
           deep: Palette.inkFaint,
@@ -207,19 +208,19 @@ class _SettingsSheet extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
-                title: const Text('기록을 지울까요?', style: TextStyles.title),
-                content: const Text(
-                  '최고 점수와 별 기록이 모두 사라져요.',
+                title: Text(tr('기록을 지울까요?'), style: TextStyles.title),
+                content: Text(
+                  tr('최고 점수와 별 기록이 모두 사라져요.'),
                   style: TextStyles.body,
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('취소'),
+                    child: Text(tr('취소')),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('지우기'),
+                    child: Text(tr('지우기')),
                   ),
                 ],
               ),
@@ -233,7 +234,7 @@ class _SettingsSheet extends ConsumerWidget {
         ),
         const SizedBox(height: 14),
         Text(
-          '음악과 효과음은 모두 직접 합성한 오리지널 사운드예요.',
+          tr('음악과 효과음은 모두 직접 합성한 오리지널 사운드예요.'),
           textAlign: TextAlign.center,
           style: TextStyles.caption.copyWith(fontSize: 12),
         ),

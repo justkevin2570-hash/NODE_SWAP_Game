@@ -1,19 +1,25 @@
+import '../../core/l10n.dart';
+
 /// 목표 대칭의 종류.
 enum SymmetryType {
-  horizontal('좌우 대칭', '왼쪽과 오른쪽을 똑같이'),
-  vertical('상하 대칭', '위와 아래를 똑같이'),
-  point('점대칭', '180도 돌려도 똑같이'),
+  horizontal('좌우 대칭', 'Left-Right', '왼쪽과 오른쪽을 똑같이'),
+  vertical('상하 대칭', 'Top-Bottom', '위와 아래를 똑같이'),
+  point('점대칭', 'Point', '180도 돌려도 똑같이'),
 
   /// y = x : 왼쪽 아래 → 오른쪽 위 대각선(↗)
-  diagonalUp('y = x 대칭', '오른쪽 위로 가는 대각선을 기준으로 똑같이'),
+  diagonalUp('y = x 대칭', 'y = x', '오른쪽 위로 가는 대각선을 기준으로 똑같이'),
 
   /// y = −x : 왼쪽 위 → 오른쪽 아래 대각선(↘)
-  diagonalDown('y = -x 대칭', '오른쪽 아래로 가는 대각선을 기준으로 똑같이');
+  diagonalDown('y = -x 대칭', 'y = -x', '오른쪽 아래로 가는 대각선을 기준으로 똑같이');
 
-  const SymmetryType(this.label, this.description);
+  const SymmetryType(this.koLabel, this.enLabel, this.description);
 
-  final String label;
+  final String koLabel;
+  final String enLabel;
   final String description;
+
+  /// 화면에 보이는 이름 (기기 언어에 따라).
+  String get label => isKorean ? koLabel : enLabel;
 
   /// 보드를 90° 회전했을 때 이 대칭이 바뀌는 대칭.
   /// 좌우 ↔ 상하, y=x ↔ y=−x, 점대칭은 회전해도 점대칭 그대로다.

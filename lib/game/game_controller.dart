@@ -380,7 +380,7 @@ class GameController extends Notifier<GameSession?> {
     }
     if (known != null) {
       _invalidateSolution();
-      _solution = known;
+      _setSolution(known);
       return;
     }
     if (!_analyze()) return; // 백그라운드에서 이어서 판정
@@ -394,7 +394,7 @@ class GameController extends Notifier<GameSession?> {
     final solver = Solver(s.target);
     final sol = solver.solve(s.board, maxDepth: s.movesLeft, maxNodes: _quickNodes);
     if (!solver.gaveUp) {
-      _solution = sol;
+      _setSolution(sol);
       return true;
     }
     final serial = _solveSerial;
@@ -403,7 +403,7 @@ class GameController extends Notifier<GameSession?> {
       if (serial != _solveSerial) return; // 그 사이 보드가 바뀌었다
       final (sol, gaveUp) = result;
       _solving = false;
-      _solution = sol;
+      _setSolution(sol);
       final cur = state;
       if (cur == null || cur.phase == Phase.over) return;
       if (sol == null) {
@@ -417,6 +417,15 @@ class GameController extends Notifier<GameSession?> {
       if (serial == _solveSerial) _solving = false;
     });
     return false;
+  }
+
+  /// 풀이를 기억하고, 화면의 "받을 수 있는 별" 표시용으로 (지금까지 이동 + 남은 최소 이동)을 알린다.
+  void _setSolution(Solution? sol) {
+    _solution = sol;
+    final s = state;
+    if (s == null || sol == null) return;
+    final total = s.movesUsed + sol.moveCount;
+    if (s.bestTotal != total) state = s.copyWith(bestTotal: total);
   }
 
   void _invalidateSolution() {

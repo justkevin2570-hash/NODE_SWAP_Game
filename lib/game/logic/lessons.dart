@@ -1,5 +1,6 @@
 import 'board.dart';
 import 'symmetry.dart';
+import '../../core/l10n.dart';
 
 /// 튜토리얼 한 단계.
 class Lesson {
@@ -22,8 +23,8 @@ class Lesson {
 
 final lessons = <Lesson>[
   Lesson(
-    title: '바꿔서 맞추기',
-    body: '반짝이는 두 타일을 차례로 눌러 자리를 바꿔 보세요.\n점선을 기준으로 왼쪽과 오른쪽이 똑같아지면 성공!',
+    title: tr('바꿔서 맞추기'),
+    body: tr('반짝이는 두 타일을 차례로 눌러 자리를 바꿔 보세요.\n점선을 기준으로 왼쪽과 오른쪽이 똑같아지면 성공!'),
     target: SymmetryType.horizontal,
     board: Board.fromRows(const [
       [1, 0, 1, 0, 1],
@@ -34,8 +35,8 @@ final lessons = <Lesson>[
     ]),
   ),
   Lesson(
-    title: '돌려서 맞추기',
-    body: '위아래는 이미 똑같아요. 회전 버튼으로 보드를 돌리면\n좌우 대칭이 완성돼요. 회전은 공짜예요!',
+    title: tr('돌려서 맞추기'),
+    body: tr('위아래는 이미 똑같아요. 회전 버튼으로 보드를 돌리면\n좌우 대칭이 완성돼요. 회전은 공짜예요!'),
     target: SymmetryType.horizontal,
     focusRotate: true,
     showHint: false,
@@ -48,8 +49,8 @@ final lessons = <Lesson>[
     ]),
   ),
   Lesson(
-    title: '점대칭',
-    body: '180도 돌려도 똑같으면 점대칭이에요.\n점 {(x, y)}는 {(-x, -y)}로 옮겨져요.\n타일은 밀어서 바꿔도 돼요!',
+    title: tr('점대칭'),
+    body: tr('180도 돌려도 똑같으면 점대칭이에요.\n점 {(x, y)}는 {(-x, -y)}로 옮겨져요.\n타일은 밀어서 바꿔도 돼요!'),
     target: SymmetryType.point,
     board: Board.fromRows(const [
       [1, 0, 0, 1, 1],
@@ -60,8 +61,8 @@ final lessons = <Lesson>[
     ]),
   ),
   Lesson(
-    title: '{y = -x} 대칭',
-    body: '오른쪽 아래로 가는 대각선이 접는 선이에요.\n점 {(x, y)}는 {(-y, -x)}로 옮겨져요.',
+    title: tr('{y = -x} 대칭'),
+    body: tr('오른쪽 아래로 가는 대각선이 접는 선이에요.\n점 {(x, y)}는 {(-y, -x)}로 옮겨져요.'),
     target: SymmetryType.diagonalDown,
     board: Board.fromRows(const [
       [1, 0, 1, 1, 0],
@@ -72,8 +73,8 @@ final lessons = <Lesson>[
     ]),
   ),
   Lesson(
-    title: '{y = x} 대칭',
-    body: '이번엔 오른쪽 위로 가는 대각선이 접는 선이에요.\n점 {(x, y)}는 {(y, x)}로! {x}와 {y}가 서로 바뀌어요.',
+    title: tr('{y = x} 대칭'),
+    body: tr('이번엔 오른쪽 위로 가는 대각선이 접는 선이에요.\n점 {(x, y)}는 {(y, x)}로! {x}와 {y}가 서로 바뀌어요.'),
     target: SymmetryType.diagonalUp,
     board: Board.fromRows(const [
       [1, 0, 1, 0, 0],

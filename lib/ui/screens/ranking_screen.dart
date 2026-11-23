@@ -9,6 +9,7 @@ import '../widgets/bubbly.dart';
 import '../widgets/hud.dart';
 import '../widgets/layout.dart';
 import '../widgets/pastel_background.dart';
+import '../../core/l10n.dart';
 
 /// 러시 최고 점수 랭킹 (Play 게임즈).
 class RankingScreen extends ConsumerStatefulWidget {
@@ -78,8 +79,8 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text('러시 랭킹', style: TextStyles.title),
+                      Expanded(
+                        child: Text(tr('러시 랭킹'), style: TextStyles.title),
                       ),
                       const Icon(
                         Icons.emoji_events_rounded,
@@ -94,11 +95,11 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
                   Expanded(child: _body()),
                   if (_me != null && _status == _Status.ready) ...[
                     const SizedBox(height: 10),
-                    _RankRow(entry: _me!, highlight: true, label: '내 순위'),
+                    _RankRow(entry: _me!, highlight: true, label: tr('내 순위')),
                   ],
                   const SizedBox(height: 12),
                   BubblyButton(
-                    label: 'Google Play 게임즈에서 보기',
+                    label: tr('Google Play 게임즈에서 보기'),
                     icon: Icons.open_in_new_rounded,
                     color: Palette.white,
                     deep: Palette.inkFaint,
@@ -125,15 +126,15 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
       case _Status.needSignIn:
         return _Message(
           icon: Icons.sports_esports_rounded,
-          text: 'Google Play 게임즈에 로그인하면\n다른 사람들과 점수를 겨룰 수 있어요',
-          button: '로그인',
+          text: tr('Google Play 게임즈에 로그인하면\n다른 사람들과 점수를 겨룰 수 있어요'),
+          button: tr('로그인'),
           onPressed: _load,
         );
       case _Status.failed:
         return _Message(
           icon: Icons.wifi_off_rounded,
-          text: '랭킹을 불러오지 못했어요\n인터넷 연결을 확인해 주세요',
-          button: '다시 시도',
+          text: tr('랭킹을 불러오지 못했어요\n인터넷 연결을 확인해 주세요'),
+          button: tr('다시 시도'),
           onPressed: _load,
         );
       case _Status.ready:
@@ -141,8 +142,8 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
           return _Message(
             icon: Icons.emoji_events_outlined,
             text: _period == RankPeriod.weekly
-                ? '이번 주에는 아직 기록이 없어요\n첫 번째 주인공이 되어 보세요!'
-                : '아직 기록이 없어요',
+                ? tr('이번 주에는 아직 기록이 없어요\n첫 번째 주인공이 되어 보세요!')
+                : tr('아직 기록이 없어요'),
           );
         }
         return ListView.separated(

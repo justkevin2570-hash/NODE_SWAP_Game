@@ -26,6 +26,7 @@ import 'ranking_screen.dart';
 import 'stage_map_screen.dart';
 import 'sheets.dart';
 import 'tutorial_screen.dart';
+import '../../core/l10n.dart';
 
 class TitleScreen extends ConsumerStatefulWidget {
   const TitleScreen({super.key});
@@ -79,10 +80,10 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
     final today = dailyKey(now);
     final streak = daily.streakOn(today, dailyYesterdayKey(now));
     final dailyText = daily.clearedOn(today)
-        ? '오늘 완료!  $streak일 연속'
+        ? tr('오늘 완료!  {n}일 연속', {'n': streak})
         : streak > 0
-            ? '${dailySize(now).label}  |  $streak일 연속 도전 중'
-            : '${dailySize(now).label}  |  매일 새로운 한 판';
+            ? tr('{size}  |  {n}일 연속 도전 중', {'size': dailySize(now).label, 'n': streak})
+            : tr('{size}  |  매일 새로운 한 판', {'size': dailySize(now).label});
     return Scaffold(
       body: PastelBackground(
         child: SafeArea(
@@ -114,7 +115,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                     const Spacer(),
                     const _Logo(),
                     const SizedBox(height: 10),
-                    Text('밀고, 돌리고, 대칭을 완성하세요!',
+                    Text(tr('밀고, 돌리고, 대칭을 완성하세요!'),
                             style: TextStyles.body.copyWith(color: Palette.inkSoft, fontSize: 17))
                         .animate()
                         .fadeIn(delay: 700.ms),
@@ -122,10 +123,10 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                     _DemoBoard(size: demo),
                     const Spacer(),
                     BubblyButton(
-                      label: '러시 시작',
+                      label: tr('러시 시작'),
                       subtitle: records.rushBestScore > 0
-                          ? '최고 ${RollingNumber.formatInt(records.rushBestScore)}점 (${records.rushBestStage}번째 퍼즐)'
-                          : '60초 동안 최대한 많이!',
+                          ? tr('최고 {score}점 ({n}번째 퍼즐)', {'score': RollingNumber.formatInt(records.rushBestScore), 'n': records.rushBestStage})
+                          : tr('60초 동안 최대한 많이!'),
                       icon: Icons.bolt_rounded,
                       color: Palette.pink,
                       deep: Palette.pinkDeep,
@@ -140,7 +141,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                       children: [
                         Expanded(
                           child: BubblyButton(
-                            label: '스테이지',
+                            label: tr('스테이지'),
                             icon: Icons.extension_rounded,
                             color: Palette.sky,
                             deep: Palette.skyDeep,
@@ -151,7 +152,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: BubblyButton(
-                            label: '배우기',
+                            label: tr('배우기'),
                             icon: Icons.school_rounded,
                             color: Palette.mint,
                             deep: Palette.mintDeep,
@@ -163,7 +164,7 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                     ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.5, curve: Curves.easeOutBack),
                     const SizedBox(height: 12),
                     BubblyButton(
-                      label: '오늘의 퍼즐',
+                      label: tr('오늘의 퍼즐'),
                       subtitle: dailyText,
                       icon: daily.clearedOn(today) ? Icons.check_circle_rounded : Icons.today_rounded,
                       color: Palette.butter,

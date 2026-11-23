@@ -20,6 +20,7 @@ import '../widgets/math_text.dart';
 import '../widgets/particles.dart';
 import '../widgets/pastel_background.dart';
 import 'game_screen.dart';
+import '../../core/l10n.dart';
 
 /// 3단계로 직접 해 보는 튜토리얼.
 class TutorialScreen extends ConsumerStatefulWidget {
@@ -134,7 +135,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
       if (Solver(_lesson.target).solve(_board, maxDepth: 3) == null) {
         Future.delayed(const Duration(milliseconds: 400), () {
           if (!mounted) return;
-          _fx.currentState?.banner('다시 해 볼까요?', color: Palette.skyDeep, size: 40);
+          _fx.currentState?.banner(tr('다시 해 볼까요?'), color: Palette.skyDeep, size: 40);
           setState(() => _load(_step));
         });
       }
@@ -146,7 +147,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
       final board = _boardKey.currentState;
       board?.celebrate();
       if (board != null) _particles.currentState?.burst(board.centerGlobal, count: 40);
-      _fx.currentState?.banner(_step == lessons.length - 1 ? '완벽해요!' : '잘했어요!',
+      _fx.currentState?.banner(_step == lessons.length - 1 ? tr('완벽해요!') : tr('잘했어요!'),
           color: Palette.forSymmetry(_lesson.target).$2);
       _audio.play(Sfx.clear);
       _audio.haptic(HapticKind.medium);
@@ -225,7 +226,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                   ref.read(settingsProvider.notifier).markTutorialSeen();
                   _finish();
                 },
-                child: Text('건너뛰기', style: TextStyles.caption.copyWith(fontSize: 15)),
+                child: Text(tr('건너뛰기'), style: TextStyles.caption.copyWith(fontSize: 15)),
               ),
             ],
           ),
@@ -272,7 +273,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
           SizedBox(
             width: 240,
             child: BubblyButton(
-              label: '90도 회전',
+              label: tr('90도 회전'),
               icon: Icons.rotate_right_rounded,
               color: light,
               deep: deep,
@@ -290,26 +291,26 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
     return Column(
       children: [
         const Spacer(),
-        const Text('준비 완료!', style: TextStyles.display)
+        Text(tr('준비 완료!'), style: TextStyles.display)
             .animate()
             .scaleXY(begin: 0.4, duration: 700.ms, curve: Curves.elasticOut),
         const SizedBox(height: 18),
         GlassCard(
           child: Column(
             children: [
-              _tip(Icons.timer_rounded, Palette.mintDeep, '러시 모드는 60초! 풀 때마다 시간이 늘어나요.'),
-              _tip(Icons.bolt_rounded, Palette.pinkDeep, '8초 안에 연달아 풀면 콤보가 쌓여요.'),
+              _tip(Icons.timer_rounded, Palette.mintDeep, tr('러시 모드는 60초! 풀 때마다 시간이 늘어나요.')),
+              _tip(Icons.bolt_rounded, Palette.pinkDeep, tr('8초 안에 연달아 풀면 콤보가 쌓여요.')),
               _tip(Icons.local_fire_department_rounded, Palette.butterDeep,
-                  '${Rules.feverEvery}콤보마다 피버 타임! 시간이 멈추고 점수 2배.'),
+                  tr('{n}콤보마다 피버 타임! 시간이 멈추고 점수 2배.', {'n': Rules.feverEvery})),
               _tip(Icons.undo_rounded, Palette.danger,
-                  '막히면 되돌리기로 무르거나, 패스(-3초)로 다음 퍼즐로 넘어가요.'),
-              _tip(Icons.call_made_rounded, Palette.peachDeep, '6번째 퍼즐부터 {y = x}, {y = -x} 대칭도 나와요.'),
+                  tr('막히면 되돌리기로 무르거나, 패스(-3초)로 다음 퍼즐로 넘어가요.')),
+              _tip(Icons.call_made_rounded, Palette.peachDeep, tr('6번째 퍼즐부터 {y = x}, {y = -x} 대칭도 나와요.')),
             ],
           ),
         ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2),
         const Spacer(),
         BubblyButton(
-          label: widget.then == null ? '좋아요!' : '러시 시작!',
+          label: widget.then == null ? tr('좋아요!') : tr('러시 시작!'),
           icon: Icons.bolt_rounded,
           color: Palette.pink,
           deep: Palette.pinkDeep,

@@ -16,6 +16,7 @@ import '../widgets/particles.dart';
 import '../widgets/pastel_background.dart';
 import 'game_screen.dart';
 import 'ranking_screen.dart';
+import '../../core/l10n.dart';
 
 class ResultScreen extends ConsumerStatefulWidget {
   const ResultScreen({super.key, required this.session});
@@ -79,8 +80,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final classic = s.mode == GameMode.classic;
     final title = switch (s.mode) {
       GameMode.rush =>
-        s.newRecord ? '신기록!' : (s.expired ? '게임 종료' : 'TIME UP!'),
-      GameMode.classic => s.won ? 'CLEAR!' : '아쉬워요!',
+        s.newRecord ? tr('신기록!') : (s.expired ? tr('게임 종료') : 'TIME UP!'),
+      GameMode.classic => s.won ? 'CLEAR!' : tr('아쉬워요!'),
     };
     final titleColor = s.newRecord
         ? Palette.pinkDeep
@@ -105,10 +106,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     const Spacer(),
                     Text(
                       s.isDaily
-                          ? '오늘의 퍼즐 ${s.boardSize.label}'
+                          ? tr('오늘의 퍼즐 {size}', {'size': s.boardSize.label})
                           : classic
-                              ? '${s.boardSize.label} ${s.stageNumber ?? ''}탄'
-                              : '러시 모드',
+                              ? tr('{size} {n}탄', {'size': s.boardSize.label, 'n': s.stageNumber ?? ''})
+                              : tr('러시 모드'),
                       style: TextStyles.caption.copyWith(fontSize: 16),
                     ).animate().fadeIn(),
                     const SizedBox(height: 8),
@@ -136,7 +137,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           child: Column(
                             children: [
                               if (s.isDaily) ...[
-                                Text('연속 기록', style: TextStyles.caption),
+                                Text(tr('연속 기록'), style: TextStyles.caption),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Row(
@@ -146,14 +147,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                           color: Palette.peachDeep, size: 44),
                                       const SizedBox(width: 6),
                                       Text(
-                                        s.won ? '${s.dailyStreak}일 연속' : '-',
+                                        s.won ? tr('{n}일 연속', {'n': s.dailyStreak}) : '-',
                                         style: TextStyles.number.copyWith(fontSize: 44, color: Palette.ink),
                                       ),
                                     ],
                                   ),
                                 ),
                               ] else if (classic) ...[
-                                Text('모은 별', style: TextStyles.caption),
+                                Text(tr('모은 별'), style: TextStyles.caption),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Row(
@@ -191,8 +192,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                       color: Palette.butter,
                                       child: Text(
                                         classic
-                                            ? '★ 별 +${s.starGain} ★'
-                                            : '★ 최고 기록 갱신 ★',
+                                            ? tr('★ 별 +{n} ★', {'n': s.starGain})
+                                            : tr('★ 최고 기록 갱신 ★'),
                                         style: TextStyles.body.copyWith(
                                           color: Palette.ink,
                                         ),
@@ -216,7 +217,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            '이번 주 ${_weekly!.rank}위',
+                                            tr('이번 주 {n}위', {'n': _weekly!.rank}),
                                             style: TextStyles.body.copyWith(
                                               color: Palette.ink,
                                             ),
@@ -244,7 +245,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     ..._playButtons(context),
                     const SizedBox(height: 14),
                     BubblyButton(
-                      label: classic && !s.isDaily ? '스테이지 목록' : '홈으로',
+                      label: classic && !s.isDaily ? tr('스테이지 목록') : tr('홈으로'),
                       icon: classic
                           ? Icons.grid_view_rounded
                           : Icons.home_rounded,
@@ -316,51 +317,51 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
     if (s.mode == GameMode.rush) {
       return [
-        big('한 번 더!', Icons.replay_rounded, newRun),
+        big(tr('한 번 더!'), Icons.replay_rounded, newRun),
         if (ref.read(leaderboardProvider).available) ...[
           const SizedBox(height: 12),
           small(
-            '랭킹 보기',
+            tr('랭킹 보기'),
             Icons.emoji_events_rounded,
             () => Navigator.of(context).push(softRoute(const RankingScreen())),
           ),
         ],
       ];
     }
-    if (s.isDaily) return [big('다시 하기', Icons.replay_rounded, retry)];
+    if (s.isDaily) return [big(tr('다시 하기'), Icons.replay_rounded, retry)];
     if (s.won && hasNext) {
       return [
-        big('다음 탄', Icons.arrow_forward_rounded, nextStage),
+        big(tr('다음 탄'), Icons.arrow_forward_rounded, nextStage),
         const SizedBox(height: 12),
-        small('다시 하기', Icons.replay_rounded, retry),
+        small(tr('다시 하기'), Icons.replay_rounded, retry),
       ];
     }
-    return [big('다시 하기', Icons.replay_rounded, retry)];
+    return [big(tr('다시 하기'), Icons.replay_rounded, retry)];
   }
 
   List<Widget> _stats(int best, StageProgress progress) {
     final items = s.mode == GameMode.rush
         ? [
-            ('푼 퍼즐', '${s.cleared}', Palette.mintDeep),
-            ('최대 콤보', '${s.maxCombo}', Palette.pinkDeep),
-            ('최고 기록', RollingNumber.formatInt(best), Palette.lavenderDeep),
+            (tr('푼 퍼즐'), '${s.cleared}', Palette.mintDeep),
+            (tr('최대 콤보'), '${s.maxCombo}', Palette.pinkDeep),
+            (tr('최고 기록'), RollingNumber.formatInt(best), Palette.lavenderDeep),
           ]
         : [
             (
-              '이동',
-              s.won ? '${s.movesUsed} / 최소 ${s.puzzle.par}' : '-',
+              tr('이동'),
+              s.won ? tr('{used} / 최소 {par}', {'used': s.movesUsed, 'par': s.puzzle.par}) : '-',
               Palette.mintDeep,
             ),
             (
-              '남은 시간',
-              s.won ? '${(s.remainingMs / 1000).ceil()}초' : '-',
+              tr('남은 시간'),
+              s.won ? tr('{n}초', {'n': (s.remainingMs / 1000).ceil()}) : '-',
               Palette.skyDeep,
             ),
             s.isDaily
-                ? ('최고 연속', '${ref.read(dailyProgressProvider).bestStreak}일', Palette.lavenderDeep)
+                ? (tr('최고 연속'), tr('{n}일', {'n': ref.read(dailyProgressProvider).bestStreak}), Palette.lavenderDeep)
                 : (
-                    '진행',
-                    '${progress.clearedCount(s.boardSize)} / ${Rules.stageCount}탄',
+                    tr('진행'),
+                    tr('{cleared} / {total}탄', {'cleared': progress.clearedCount(s.boardSize), 'total': Rules.stageCount}),
                     Palette.lavenderDeep,
                   ),
           ];

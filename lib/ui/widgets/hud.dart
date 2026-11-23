@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/l10n.dart';
 import '../../core/palette.dart';
 import '../../core/theme.dart';
 import '../../game/logic/symmetry.dart';
@@ -308,7 +309,7 @@ class SymmetryBadge extends StatelessWidget {
                     fontSize: compact ? 18 : 22,
                     color: Color.lerp(deep, Palette.ink, 0.6)!,
                   ),
-                  const TextSpan(text: ' 대칭'),
+                  TextSpan(text: tr(' 대칭')),
                 ]),
                 style: TextStyle(fontFamily: kFont, fontSize: compact ? 14 : 17, color: Palette.ink, height: 1.1),
               ),

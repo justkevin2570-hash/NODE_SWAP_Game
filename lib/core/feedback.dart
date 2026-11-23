@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'l10n.dart';
 
 /// 의견·버그 제보를 받을 이메일. 비어 있으면 설정 화면에 [의견 보내기] 버튼이 나오지 않는다.
 /// 개인정보처리방침(docs/privacy-policy.md)의 문의 이메일과 같게 맞춘다.
@@ -22,13 +23,13 @@ Future<bool> sendFeedback() async {
   final os = kIsWeb ? 'web' : '${Platform.operatingSystem} ${Platform.operatingSystemVersion}';
   final body = '\n\n\n'
       '----------\n'
-      '앱 버전: $version\n'
-      '기기: $os\n';
+      '${tr('앱 버전: {v}', {'v': version})}\n'
+      '${tr('기기: {os}', {'os': os})}\n';
   final uri = Uri(
     scheme: 'mailto',
     path: kFeedbackEmail,
     // mailto 는 + 를 공백으로 읽지 않으므로 queryParameters 대신 직접 인코딩한다.
-    query: 'subject=${Uri.encodeComponent('[Symmetry Rush] 의견')}&body=${Uri.encodeComponent(body)}',
+    query: 'subject=${Uri.encodeComponent(tr('[Symmetry Rush] 의견'))}&body=${Uri.encodeComponent(body)}',
   );
   try {
     return await launchUrl(uri, mode: LaunchMode.externalApplication);

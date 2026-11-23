@@ -21,6 +21,7 @@ import '../widgets/layout.dart';
 import '../widgets/particles.dart';
 import '../widgets/pastel_background.dart';
 import 'result_screen.dart';
+import '../../core/l10n.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen(
@@ -118,8 +119,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       case StuckEvent():
         board?.shake();
         fx?.banner(
-          '막혔어요!',
-          sub: widget.mode == GameMode.rush ? '되돌리기로 한 수 무르거나 패스하세요' : '되돌리기로 한 수 물러 보세요',
+          tr('막혔어요!'),
+          sub: widget.mode == GameMode.rush ? tr('되돌리기로 한 수 무르거나 패스하세요') : tr('되돌리기로 한 수 물러 보세요'),
           color: Palette.danger,
           size: 46,
           duration: const Duration(milliseconds: 1300),
@@ -142,14 +143,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               color: deep, size: 40, rise: 110, duration: const Duration(milliseconds: 1100));
         }
         if (timeBonusMs > 0) {
-          fx?.floatText('+${timeBonusMs ~/ 1000}초', _centerOf(_timerKey) + const Offset(60, 30),
+          fx?.floatText(tr('+{n}초', {'n': timeBonusMs ~/ 1000}), _centerOf(_timerKey) + const Offset(60, 30),
               color: Palette.mintDeep, size: 24, rise: 40);
         }
         final String title;
         String? sub;
         if (widget.mode == GameMode.classic) {
           title = 'CLEAR!';
-          sub = perfect ? 'PERFECT! 최소 이동' : null;
+          sub = perfect ? tr('PERFECT! 최소 이동') : null;
         } else if (combo >= 2) {
           title = 'COMBO x$combo';
           sub = perfect ? 'PERFECT!' : (fast ? 'FAST!' : null);
@@ -160,13 +161,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       case FailEvent(:final reason, :final penaltyMs):
         board?.shake();
         final title = switch (reason) {
-          FailReason.stuck => '막혔어요!',
-          FailReason.outOfMoves => '이동 끝!',
-          FailReason.skipped => '건너뛰기',
+          FailReason.stuck => tr('막혔어요!'),
+          FailReason.outOfMoves => tr('이동 끝!'),
+          FailReason.skipped => tr('건너뛰기'),
         };
         fx?.banner(
           title,
-          sub: penaltyMs > 0 ? '-${penaltyMs ~/ 1000}초, 새 퍼즐' : '다시 도전해 봐요',
+          sub: penaltyMs > 0 ? tr('-{n}초, 새 퍼즐', {'n': penaltyMs ~/ 1000}) : tr('다시 도전해 봐요'),
           color: reason == FailReason.skipped ? Palette.skyDeep : Palette.danger,
           size: 48,
           duration: const Duration(milliseconds: 900),
@@ -174,21 +175,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       case FeverEvent(:final started):
         if (started) {
           fx?.banner('FEVER TIME!',
-              sub: '시간 정지 + 점수 2배', color: Palette.butterDeep, size: 58, duration: const Duration(milliseconds: 1500), dy: 0.25);
+              sub: tr('시간 정지 + 점수 2배'), color: Palette.butterDeep, size: 58, duration: const Duration(milliseconds: 1500), dy: 0.25);
           particles?.confetti(count: 70);
         } else {
-          fx?.floatText('피버 끝!', _centerOf(_timerKey), color: Palette.inkSoft, size: 20);
+          fx?.floatText(tr('피버 끝!'), _centerOf(_timerKey), color: Palette.inkSoft, size: 20);
         }
       case NewPuzzleEvent():
         break;
       case HintEvent(:final hint):
         if (hint.rotate) {
-          fx?.floatText('돌려 보세요!', _centerOf(_rotateKey) - const Offset(0, 30),
+          fx?.floatText(tr('돌려 보세요!'), _centerOf(_rotateKey) - const Offset(0, 30),
               color: Palette.lavenderDeep, size: 22);
         }
       case SessionExpiredEvent():
-        fx?.banner('오래 자리를 비웠어요',
-            sub: '이번 판은 여기까지! 점수는 기록에 남아요',
+        fx?.banner(tr('오래 자리를 비웠어요'),
+            sub: tr('이번 판은 여기까지! 점수는 기록에 남아요'),
             color: Palette.skyDeep,
             size: 40,
             duration: const Duration(milliseconds: 1600));
@@ -332,7 +333,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('남은 이동', style: TextStyles.caption.copyWith(fontSize: 15)),
+                Text(tr('남은 이동'), style: TextStyles.caption.copyWith(fontSize: 15)),
                 const SizedBox(width: 10),
                 Flexible(child: MovesPips(used: s.movesUsed, max: s.maxMoves, color: deep, light: light)),
               ],
@@ -357,13 +358,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 widget.mode == GameMode.rush
                     ? 'SCORE'
                     : s.isDaily
-                        ? '오늘의 퍼즐 ${widget.boardSize.label}'
-                        : '${widget.boardSize.label} ${s.stageNumber ?? ''}탄',
+                        ? tr('오늘의 퍼즐 {size}', {'size': widget.boardSize.label})
+                        : tr('{size} {n}탄', {'size': widget.boardSize.label, 'n': s.stageNumber ?? ''}),
                 style: TextStyles.caption),
-            RollingNumber(
-              value: s.score,
-              style: TextStyles.number.copyWith(fontSize: 34),
-            ),
+            if (widget.mode == GameMode.rush)
+              RollingNumber(
+                value: s.score,
+                style: TextStyles.number.copyWith(fontSize: 34),
+              )
+            else
+              // 스테이지: 점수 대신 지금 받을 수 있는 별 (헛수를 두면 하나씩 꺼진다)
+              _StarPreview(
+                stars: s.bestTotal == null
+                    ? 3
+                    : Rules.classicStars(movesUsed: s.bestTotal!, par: s.puzzle.par),
+              ),
           ],
         ),
         const Spacer(),
@@ -394,7 +403,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final rush = widget.mode == GameMode.rush;
     final stuck = s.stuck;
     return BubblyButton(
-      label: rush ? '패스 -3초' : (s.isDaily ? '나가기' : '목록'),
+      label: rush ? tr('패스 -3초') : (s.isDaily ? tr('나가기') : tr('목록')),
       icon: rush ? Icons.fast_forward_rounded : (s.isDaily ? Icons.home_rounded : Icons.grid_view_rounded),
       color: stuck ? Palette.coral : Palette.white,
       deep: stuck ? Palette.coralDeep : Palette.inkFaint,
@@ -415,8 +424,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       children: [
         Expanded(
           child: BubblyButton(
-            label: '되돌리기',
-            subtitle: '${s.undosLeft}개 남음',
+            label: tr('되돌리기'),
+            subtitle: tr('{n}개 남음', {'n': s.undosLeft}),
             icon: Icons.undo_rounded,
             color: Palette.peach,
             deep: Palette.peachDeep,
@@ -434,8 +443,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           child: KeyedSubtree(
             key: _rotateKey,
             child: BubblyButton(
-              label: '90도 회전',
-              subtitle: '무료',
+              label: tr('90도 회전'),
+              subtitle: tr('무료'),
               icon: Icons.rotate_right_rounded,
               color: light,
               deep: deep,
@@ -450,8 +459,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         const SizedBox(width: 10),
         Expanded(
           child: BubblyButton(
-            label: '힌트',
-            subtitle: '${s.hintsLeft}개 남음',
+            label: tr('힌트'),
+            subtitle: tr('{n}개 남음', {'n': s.hintsLeft}),
             icon: Icons.lightbulb_rounded,
             color: Palette.butter,
             deep: Palette.butterDeep,
@@ -626,30 +635,30 @@ class _PauseOverlay extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('잠깐 쉬어요', style: TextStyles.title),
+                  Text(tr('잠깐 쉬어요'), style: TextStyles.title),
                   const SizedBox(height: 6),
-                  Text('시간이 멈췄어요', style: TextStyles.caption),
+                  Text(tr('시간이 멈췄어요'), style: TextStyles.caption),
                   const SizedBox(height: 18),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _Toggle(
                         icon: settings.musicVolume > 0 ? Icons.music_note_rounded : Icons.music_off_rounded,
-                        label: '음악',
+                        label: tr('음악'),
                         on: settings.musicVolume > 0,
                         onTap: () => notifier.setMusicVolume(settings.musicVolume > 0 ? 0 : 0.5),
                       ),
                       const SizedBox(width: 12),
                       _Toggle(
                         icon: settings.sfxVolume > 0 ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                        label: '효과음',
+                        label: tr('효과음'),
                         on: settings.sfxVolume > 0,
                         onTap: () => notifier.setSfxVolume(settings.sfxVolume > 0 ? 0 : 0.8),
                       ),
                       const SizedBox(width: 12),
                       _Toggle(
                         icon: Icons.vibration_rounded,
-                        label: '진동',
+                        label: tr('진동'),
                         on: settings.haptics,
                         onTap: () => notifier.setHaptics(!settings.haptics),
                       ),
@@ -657,7 +666,7 @@ class _PauseOverlay extends ConsumerWidget {
                   ),
                   const SizedBox(height: 22),
                   BubblyButton(
-                    label: '계속하기',
+                    label: tr('계속하기'),
                     icon: Icons.play_arrow_rounded,
                     color: Palette.mint,
                     deep: Palette.mintDeep,
@@ -666,7 +675,7 @@ class _PauseOverlay extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   BubblyButton(
-                    label: '처음부터',
+                    label: tr('처음부터'),
                     icon: Icons.replay_rounded,
                     color: Palette.sky,
                     deep: Palette.skyDeep,
@@ -677,7 +686,7 @@ class _PauseOverlay extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   BubblyButton(
-                    label: mode == GameMode.classic && !daily ? '스테이지 목록' : '홈으로',
+                    label: mode == GameMode.classic && !daily ? tr('스테이지 목록') : tr('홈으로'),
                     icon: Icons.home_rounded,
                     color: Palette.white,
                     deep: Palette.inkFaint,
@@ -709,11 +718,21 @@ class _Toggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 좁은 화면(360dp)에서도 세 개가 한 줄에 들어가도록 줄어들 수 있게 한다 (최대 82).
+    return Flexible(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 82),
+        child: _box(),
+      ),
+    );
+  }
+
+  Widget _box() {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 82,
+        width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: on ? Palette.lavender : Colors.white,
@@ -724,9 +743,43 @@ class _Toggle extends StatelessWidget {
           children: [
             Icon(icon, color: on ? Palette.ink : Palette.inkFaint),
             const SizedBox(height: 2),
-            Text(label, style: TextStyles.caption.copyWith(color: on ? Palette.ink : Palette.inkSoft)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label, style: TextStyles.caption.copyWith(color: on ? Palette.ink : Palette.inkSoft)),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 스테이지에서 지금 받을 수 있는 별 개수. 줄어들 때 살짝 튀며 꺼진다.
+class _StarPreview extends StatelessWidget {
+  const _StarPreview({required this.stars});
+
+  final int stars;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < 3; i++)
+            AnimatedScale(
+              key: ValueKey('star$i'),
+              scale: i < stars ? 1.0 : 0.8,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutBack,
+              child: Icon(
+                Icons.star_rounded,
+                size: 32,
+                color: i < stars ? Palette.butterDeep : Palette.inkFaint.withValues(alpha: 0.6),
+              ),
+            ),
+        ],
       ),
     );
   }

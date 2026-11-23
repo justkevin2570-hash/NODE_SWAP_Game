@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio/audio_engine.dart';
+import '../../core/l10n.dart';
 import '../../core/palette.dart';
 import '../../core/storage.dart';
 import '../../core/theme.dart';
@@ -81,8 +82,8 @@ class _StageMapScreenState extends ConsumerState<StageMapScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('스테이지 | ${d.label}', style: TextStyles.title.copyWith(fontSize: 24)),
-                            Text('$cleared / ${Rules.stageCount}탄 클리어', style: TextStyles.caption),
+                            Text(tr('스테이지 | {size}', {'size': d.label}), style: TextStyles.title.copyWith(fontSize: 24)),
+                            Text(tr('{cleared} / {total}탄 클리어', {'cleared': cleared, 'total': Rules.stageCount}), style: TextStyles.caption),
                           ],
                         ),
                       ),

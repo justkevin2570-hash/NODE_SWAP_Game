@@ -5,14 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/storage.dart';
 import 'play_games_config.dart';
+import '../core/l10n.dart';
 
 /// 랭킹 기간.
 enum RankPeriod {
-  weekly('이번 주'),
-  allTime('전체');
+  weekly('이번 주', 'This week'),
+  allTime('전체', 'All time');
 
-  const RankPeriod(this.label);
-  final String label;
+  const RankPeriod(this.koLabel, this.enLabel);
+  final String koLabel;
+  final String enLabel;
+  String get label => isKorean ? koLabel : enLabel;
 }
 
 /// 랭킹 한 줄.
@@ -187,11 +190,11 @@ class DemoLeaderboard implements LeaderboardService {
     final base = p == RankPeriod.weekly ? 4200 : 9800;
     final list = [
       for (int i = 0; i < names.length; i++) (names[i], base - i * (p == RankPeriod.weekly ? 310 : 640)),
-      ('나', _mine > 0 ? _mine : (p == RankPeriod.weekly ? 2900 : 3600)),
+      (tr('나'), _mine > 0 ? _mine : (p == RankPeriod.weekly ? 2900 : 3600)),
     ]..sort((a, b) => b.$2.compareTo(a.$2));
     return [
       for (int i = 0; i < list.length; i++)
-        RankEntry(rank: i + 1, name: list[i].$1, score: list[i].$2, isMe: list[i].$1 == '나'),
+        RankEntry(rank: i + 1, name: list[i].$1, score: list[i].$2, isMe: list[i].$1 == tr('나')),
     ];
   }
 
