@@ -89,38 +89,42 @@ Swap tiles and rotate the board to make perfect symmetry. Learn reflections!
 
 **Full description** (max 4000)
 ```
-Swap, rotate, make it symmetric!
+Swap tiles and rotate the board to complete the symmetry. Symmetry Rush is a pastel puzzle game!
 
-Symmetry Rush is a puzzle game where you swap tiles and rotate the board
-to build symmetric patterns: left-right, top-bottom, point symmetry,
-and reflections across y = x and y = -x.
-It turns the reflections you learn in math class into something you can move with your fingers.
+Swap a tile with its neighbor, and rotate the board 90 degrees when you need to, until the board matches the target symmetry. The rules are simple, but solving in the fewest moves takes real thinking.
+
+■ 5 kinds of symmetry
+Left-right, top-bottom, point symmetry, and the diagonals y = x and y = -x. The goal changes every puzzle, so it always feels fresh.
 
 ■ Rush
-Solve as many puzzles as you can in 60 seconds. Every solve adds time,
-quick solves build combos, and every 5 combos sets off Fever Time.
-Climb the weekly Google Play Games leaderboard.
+Solve as many puzzles as you can in 60 seconds. Every solve adds time, and quick solves in a row build combos. Every 5 combos sets off Fever Time: the clock stops and your score doubles!
+Climb the weekly ranking on Google Play Games.
 
 ■ Stages
-100 stages for each board size (5x5, 7x7 and 9x9), 300 in total.
-Difficulty rises step by step. Solve in the fewest moves for 3 stars,
-and see how many stars you can still get right at the top of the screen.
+100 stages for each board size (5×5, 7×7 and 9×9), 300 in total. Start from stage 1 and the puzzles get a little harder as you go. Solve in the fewest moves for 3 stars, and see the stars you can still earn at the top of the screen while you play. Come back and collect them all.
 
 ■ Daily Puzzle
-A new puzzle every day. Keep your streak going!
+A new puzzle every day. Solve it every day to keep your streak going!
 
-■ Learn
-A 5-step tutorial teaches the rules and the math behind them,
-like how point (x, y) becomes (y, x) when reflected across y = x.
+■ Learn reflections from math class
+The tutorial shows how coordinates move, like how point (x, y) becomes (y, x) when reflected across y = x, and lets you try it yourself.
 
-■ Highlights
-• Pair hint shows the mirror tile of the one you select
-• Undo and hints, so getting stuck is not the end
-• Soft pastel look and an original soundtrack
-• Play in landscape on tablets with a big board
-• No ads, no sign-up
+■ Easy for everyone
+- Swap tiles by tapping twice or by dragging
+- Rotating is always free
+- Undo a move, or get a hint when you are stuck
+- Pair hint shows the mirror tile of the one you select
+- A hands-on tutorial
+- Play in landscape with a bigger board on tablets
+- Available in English and Korean
 
-Every puzzle has been solved by computer, so each one is guaranteed to have a solution.
+■ Great for
+- A quick brain warm-up
+- Fans of cute pastel games
+- Players who love chasing high scores and rankings
+- Students who want to learn reflections in a fun way
+
+No sign-up and no ads. Every mode except the ranking works without an internet connection, and your stars and progress are saved on your device.
 ```
 
 **What's new** (max 500)
