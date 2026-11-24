@@ -147,4 +147,4 @@ No sign-up and no ads. Every mode except the ranking works without an internet c
 - **태그**: 퍼즐, 두뇌, 교육(선택)
 - **연락처 이메일**: justkevin2570@gmail.com
 - **개인정보처리방침 URL**: `docs/privacy-policy.md`를 올린 웹 주소 (랭킹·문의 이메일이 반영된 최신본인지 확인)
-- **그래픽 이미지 (1024×500)**: 이전에 올린 것을 그대로 써도 된다
+- **그래픽 이미지 (1024×500)**: `release/store_graphics/feature_graphic_ko.png` (한국어), 영어 번역에는 `feature_graphic_en.png`. 다시 만들려면 `python3 tools/generate_feature_graphic.py`
