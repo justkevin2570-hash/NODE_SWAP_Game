@@ -89,6 +89,159 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         ? Palette.lavenderDeep
         : Palette.peachDeep;
 
+    final wide = isWideOf(context);
+    final info = <Widget>[
+      Text(
+        s.isDaily
+            ? tr('오늘의 퍼즐 {size}', {'size': s.boardSize.label})
+            : classic
+            ? tr('{size} {n}탄', {
+                'size': s.boardSize.label,
+                'n': s.stageNumber ?? '',
+              })
+            : tr('러시 모드'),
+        style: TextStyles.caption.copyWith(fontSize: 16),
+      ).animate().fadeIn(),
+      const SizedBox(height: 8),
+      Text(
+            title,
+            style: TextStyles.display.copyWith(fontSize: 60, color: titleColor),
+          )
+          .animate()
+          .scaleXY(begin: 0.3, duration: 700.ms, curve: Curves.elasticOut)
+          .fadeIn(duration: 200.ms),
+      const SizedBox(height: 18),
+      if (s.mode == GameMode.classic && s.won) ...[
+        _Stars(shown: _shownStars),
+        const SizedBox(height: 16),
+      ],
+      GlassCard(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+            child: Column(
+              children: [
+                if (s.isDaily) ...[
+                  Text(tr('연속 기록'), style: TextStyles.caption),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.local_fire_department_rounded,
+                          color: Palette.peachDeep,
+                          size: 44,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          s.won ? tr('{n}일 연속', {'n': s.dailyStreak}) : '-',
+                          style: TextStyles.number.copyWith(
+                            fontSize: 44,
+                            color: Palette.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else if (classic) ...[
+                  Text(tr('모은 별'), style: TextStyles.caption),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Palette.butterDeep,
+                          size: 44,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${progress.totalStars(s.boardSize)} / ${Rules.stageCount * 3}',
+                          style: TextStyles.number.copyWith(
+                            fontSize: 44,
+                            color: Palette.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  Text('SCORE', style: TextStyles.caption),
+                  RollingNumber(
+                    value: s.score,
+                    duration: const Duration(milliseconds: 1400),
+                    style: TextStyles.number.copyWith(
+                      fontSize: 56,
+                      color: Palette.ink,
+                    ),
+                  ),
+                ],
+                if (s.newRecord)
+                  Pill(
+                        color: Palette.butter,
+                        child: Text(
+                          classic
+                              ? tr('★ 별 +{n} ★', {'n': s.starGain})
+                              : tr('★ 최고 기록 갱신 ★'),
+                          style: TextStyles.body.copyWith(color: Palette.ink),
+                        ),
+                      )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .scaleXY(end: 1.08, duration: 600.ms),
+                if (_weekly != null) ...[
+                  const SizedBox(height: 8),
+                  Pill(
+                        color: Palette.lavender,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.emoji_events_rounded,
+                              size: 18,
+                              color: Palette.ink,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              tr('이번 주 {n}위', {'n': _weekly!.rank}),
+                              style: TextStyles.body.copyWith(
+                                color: Palette.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      .animate()
+                      .scaleXY(
+                        begin: 0.6,
+                        duration: 500.ms,
+                        curve: Curves.elasticOut,
+                      )
+                      .fadeIn(),
+                ],
+                const SizedBox(height: 18),
+                Row(children: _stats(best, progress)),
+              ],
+            ),
+          )
+          .animate()
+          .fadeIn(delay: 200.ms)
+          .slideY(begin: 0.2, curve: Curves.easeOutBack),
+    ];
+    final actions = <Widget>[
+      ..._playButtons(context),
+      const SizedBox(height: 14),
+      BubblyButton(
+        label: classic && !s.isDaily ? tr('스테이지 목록') : tr('홈으로'),
+        icon: classic ? Icons.grid_view_rounded : Icons.home_rounded,
+        color: Palette.white,
+        deep: Palette.inkFaint,
+        width: double.infinity,
+        height: 54,
+        fontSize: 19,
+        onPressed: () => Navigator.of(context).pop(),
+      ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.4),
+      const SizedBox(height: 8),
+    ];
     return Scaffold(
       body: PastelBackground(
         tint: s.newRecord ? Palette.butter : null,
@@ -96,169 +249,40 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           key: _particles,
           child: SafeArea(
             child: PhoneColumn(
+              maxWidth: contentMaxWidth(context),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 16,
                 ),
-                child: Column(
-                  children: [
-                    const Spacer(),
-                    Text(
-                      s.isDaily
-                          ? tr('오늘의 퍼즐 {size}', {'size': s.boardSize.label})
-                          : classic
-                              ? tr('{size} {n}탄', {'size': s.boardSize.label, 'n': s.stageNumber ?? ''})
-                              : tr('러시 모드'),
-                      style: TextStyles.caption.copyWith(fontSize: 16),
-                    ).animate().fadeIn(),
-                    const SizedBox(height: 8),
-                    Text(
-                          title,
-                          style: TextStyles.display.copyWith(
-                            fontSize: 60,
-                            color: titleColor,
+                child: wide
+                    // 태블릿 가로: 왼쪽 결과, 오른쪽 버튼
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: info,
+                            ),
                           ),
-                        )
-                        .animate()
-                        .scaleXY(
-                          begin: 0.3,
-                          duration: 700.ms,
-                          curve: Curves.elasticOut,
-                        )
-                        .fadeIn(duration: 200.ms),
-                    const SizedBox(height: 18),
-                    if (s.mode == GameMode.classic && s.won) ...[
-                      _Stars(shown: _shownStars),
-                      const SizedBox(height: 16),
-                    ],
-                    GlassCard(
-                          padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-                          child: Column(
-                            children: [
-                              if (s.isDaily) ...[
-                                Text(tr('연속 기록'), style: TextStyles.caption),
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.local_fire_department_rounded,
-                                          color: Palette.peachDeep, size: 44),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        s.won ? tr('{n}일 연속', {'n': s.dailyStreak}) : '-',
-                                        style: TextStyles.number.copyWith(fontSize: 44, color: Palette.ink),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ] else if (classic) ...[
-                                Text(tr('모은 별'), style: TextStyles.caption),
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.star_rounded,
-                                        color: Palette.butterDeep,
-                                        size: 44,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '${progress.totalStars(s.boardSize)} / ${Rules.stageCount * 3}',
-                                        style: TextStyles.number.copyWith(
-                                          fontSize: 44,
-                                          color: Palette.ink,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ] else ...[
-                                Text('SCORE', style: TextStyles.caption),
-                                RollingNumber(
-                                  value: s.score,
-                                  duration: const Duration(milliseconds: 1400),
-                                  style: TextStyles.number.copyWith(
-                                    fontSize: 56,
-                                    color: Palette.ink,
-                                  ),
-                                ),
-                              ],
-                              if (s.newRecord)
-                                Pill(
-                                      color: Palette.butter,
-                                      child: Text(
-                                        classic
-                                            ? tr('★ 별 +{n} ★', {'n': s.starGain})
-                                            : tr('★ 최고 기록 갱신 ★'),
-                                        style: TextStyles.body.copyWith(
-                                          color: Palette.ink,
-                                        ),
-                                      ),
-                                    )
-                                    .animate(
-                                      onPlay: (c) => c.repeat(reverse: true),
-                                    )
-                                    .scaleXY(end: 1.08, duration: 600.ms),
-                              if (_weekly != null) ...[
-                                const SizedBox(height: 8),
-                                Pill(
-                                      color: Palette.lavender,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
-                                            Icons.emoji_events_rounded,
-                                            size: 18,
-                                            color: Palette.ink,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            tr('이번 주 {n}위', {'n': _weekly!.rank}),
-                                            style: TextStyles.body.copyWith(
-                                              color: Palette.ink,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                    .animate()
-                                    .scaleXY(
-                                      begin: 0.6,
-                                      duration: 500.ms,
-                                      curve: Curves.elasticOut,
-                                    )
-                                    .fadeIn(),
-                              ],
-                              const SizedBox(height: 18),
-                              Row(children: _stats(best, progress)),
-                            ],
+                          const SizedBox(width: 40),
+                          SizedBox(
+                            width: 380,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: actions,
+                            ),
                           ),
-                        )
-                        .animate()
-                        .fadeIn(delay: 200.ms)
-                        .slideY(begin: 0.2, curve: Curves.easeOutBack),
-                    const Spacer(),
-                    ..._playButtons(context),
-                    const SizedBox(height: 14),
-                    BubblyButton(
-                      label: classic && !s.isDaily ? tr('스테이지 목록') : tr('홈으로'),
-                      icon: classic
-                          ? Icons.grid_view_rounded
-                          : Icons.home_rounded,
-                      color: Palette.white,
-                      deep: Palette.inkFaint,
-                      width: double.infinity,
-                      height: 54,
-                      fontSize: 19,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.4),
-                    const SizedBox(height: 8),
-                  ],
-                ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          const Spacer(),
+                          ...info,
+                          const Spacer(),
+                          ...actions,
+                        ],
+                      ),
               ),
             ),
           ),
@@ -311,9 +335,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     );
     final stage = s.stageNumber ?? 1;
     final hasNext = stage < Rules.stageCount;
-    void nextStage() => _go(
-      GameScreen(mode: s.mode, boardSize: s.boardSize, stage: stage + 1),
-    );
+    void nextStage() =>
+        _go(GameScreen(mode: s.mode, boardSize: s.boardSize, stage: stage + 1));
 
     if (s.mode == GameMode.rush) {
       return [
@@ -349,7 +372,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         : [
             (
               tr('이동'),
-              s.won ? tr('{used} / 최소 {par}', {'used': s.movesUsed, 'par': s.puzzle.par}) : '-',
+              s.won
+                  ? tr('{used} / 최소 {par}', {
+                      'used': s.movesUsed,
+                      'par': s.puzzle.par,
+                    })
+                  : '-',
               Palette.mintDeep,
             ),
             (
@@ -358,10 +386,19 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               Palette.skyDeep,
             ),
             s.isDaily
-                ? (tr('최고 연속'), tr('{n}일', {'n': ref.read(dailyProgressProvider).bestStreak}), Palette.lavenderDeep)
+                ? (
+                    tr('최고 연속'),
+                    tr('{n}일', {
+                      'n': ref.read(dailyProgressProvider).bestStreak,
+                    }),
+                    Palette.lavenderDeep,
+                  )
                 : (
                     tr('진행'),
-                    tr('{cleared} / {total}탄', {'cleared': progress.clearedCount(s.boardSize), 'total': Rules.stageCount}),
+                    tr('{cleared} / {total}탄', {
+                      'cleared': progress.clearedCount(s.boardSize),
+                      'total': Rules.stageCount,
+                    }),
                     Palette.lavenderDeep,
                   ),
           ];

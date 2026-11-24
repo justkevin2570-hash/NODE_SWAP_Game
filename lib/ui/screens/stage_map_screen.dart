@@ -24,7 +24,6 @@ class StageMapScreen extends ConsumerStatefulWidget {
 }
 
 class _StageMapScreenState extends ConsumerState<StageMapScreen> {
-  static const _columns = 5;
   static const _spacing = 10.0;
   final _scroll = ScrollController();
   bool _scrolled = false;
@@ -47,12 +46,12 @@ class _StageMapScreenState extends ConsumerState<StageMapScreen> {
   }
 
   /// 처음 열 때 지금 할 탄이 보이도록 스크롤한다.
-  void _scrollToNext(double cellSize, int next) {
+  void _scrollToNext(double cellSize, int next, int columns) {
     if (_scrolled) return;
     _scrolled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
-      final row = (next - 1) ~/ _columns;
+      final row = (next - 1) ~/ columns;
       final target = (row - 1).clamp(0, 1000) * (cellSize + 22 + _spacing);
       _scroll.jumpTo(target.clamp(0.0, _scroll.position.maxScrollExtent));
     });
@@ -70,6 +69,8 @@ class _StageMapScreenState extends ConsumerState<StageMapScreen> {
         tint: light,
         child: SafeArea(
           child: PhoneColumn(
+            // 태블릿에서는 넓게 써서 한 줄에 더 많은 탄을 보여 준다
+            maxWidth: MediaQuery.sizeOf(context).width >= 700 ? 1100 : 480,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Column(
@@ -103,13 +104,15 @@ class _StageMapScreenState extends ConsumerState<StageMapScreen> {
                   const SizedBox(height: 14),
                   Expanded(
                     child: LayoutBuilder(builder: (context, c) {
-                      final cell = (c.maxWidth - _spacing * (_columns - 1)) / _columns;
-                      _scrollToNext(cell, next);
+                      // 휴대폰 5칸, 태블릿 세로 7칸, 가로 10칸 정도
+                      final columns = (c.maxWidth / 100).floor().clamp(5, 10);
+                      final cell = (c.maxWidth - _spacing * (columns - 1)) / columns;
+                      _scrollToNext(cell, next, columns);
                       return GridView.builder(
                         controller: _scroll,
                         padding: const EdgeInsets.only(bottom: 24, top: 4),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: _columns,
+                          crossAxisCount: columns,
                           mainAxisSpacing: _spacing,
                           crossAxisSpacing: _spacing,
                           childAspectRatio: cell / (cell + 22),

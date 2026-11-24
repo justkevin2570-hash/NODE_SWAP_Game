@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -187,6 +189,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
             key: _fx,
             child: SafeArea(
               child: PhoneColumn(
+                maxWidth: _done ? 480 : contentMaxWidth(context),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
                   child: _done ? _doneView() : _lessonView(light, deep),
@@ -201,11 +204,15 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
 
   Widget _lessonView(Color light, Color deep) {
     return LayoutBuilder(builder: (context, c) {
-      final size = (c.maxWidth - 40).clamp(220.0, 400.0).toDouble();
-      final boardSize = size > c.maxHeight * 0.5 ? c.maxHeight * 0.5 : size;
-      return Column(
-        children: [
-          Row(
+      final wide = isWideLandscape(Size(c.maxWidth, c.maxHeight));
+      final double boardSize;
+      if (wide) {
+        boardSize = min(c.maxHeight - 90, c.maxWidth - 440).clamp(220.0, 620.0).toDouble();
+      } else {
+        final size = (c.maxWidth - 40).clamp(220.0, 560.0).toDouble();
+        boardSize = size > c.maxHeight * 0.5 ? c.maxHeight * 0.5 : size;
+      }
+      final top = Row(
             children: [
               RoundIconButton(icon: Icons.close_rounded, onPressed: () => Navigator.of(context).pop()),
               const Spacer(),
@@ -229,9 +236,8 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                 child: Text(tr('건너뛰기'), style: TextStyles.caption.copyWith(fontSize: 15)),
               ),
             ],
-          ),
-          const SizedBox(height: 14),
-          GlassCard(
+          );
+      final card = GlassCard(
             key: ValueKey(_step),
             child: Column(
               children: [
@@ -249,11 +255,8 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                     textAlign: TextAlign.center, style: TextStyles.body.copyWith(height: 1.45, color: Palette.inkSoft)),
               ],
             ),
-          ).animate().fadeIn().slideY(begin: -0.15, curve: Curves.easeOutBack),
-          const SizedBox(height: 14),
-          SymmetryBadge(type: _lesson.target),
-          const Spacer(),
-          BoardView(
+          ).animate().fadeIn().slideY(begin: -0.15, curve: Curves.easeOutBack);
+      final board = BoardView(
             key: _boardKey,
             board: _board,
             tileIds: _ids,
@@ -268,9 +271,8 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
             enabled: !_solved,
             onTapCell: _tap,
             onSwap: _swap,
-          ),
-          const Spacer(),
-          SizedBox(
+          );
+      final rotate = SizedBox(
             width: 240,
             child: BubblyButton(
               label: tr('90도 회전'),
@@ -281,7 +283,48 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
               sound: null,
               onPressed: _solved ? null : _rotate,
             ),
-          ),
+          );
+      if (wide) {
+        // 태블릿 가로: 왼쪽 설명과 회전 버튼, 오른쪽 판
+        return Column(
+          children: [
+            top,
+            const SizedBox(height: 14),
+            Expanded(
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 380,
+                    child: Column(
+                      children: [
+                        card,
+                        const SizedBox(height: 14),
+                        SymmetryBadge(type: _lesson.target),
+                        const Spacer(),
+                        rotate,
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 40),
+                  Expanded(child: Center(child: board)),
+                ],
+              ),
+            ),
+          ],
+        );
+      }
+      return Column(
+        children: [
+          top,
+          const SizedBox(height: 14),
+          card,
+          const SizedBox(height: 14),
+          SymmetryBadge(type: _lesson.target),
+          const Spacer(),
+          board,
+          const Spacer(),
+          rotate,
         ],
       );
     });

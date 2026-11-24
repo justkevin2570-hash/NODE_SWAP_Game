@@ -257,6 +257,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   if (fever) const _FeverFrame(),
                   SafeArea(
                     child: PhoneColumn(
+                      maxWidth: contentMaxWidth(context, wide: 1200),
                       child: s == null ? const SizedBox() : _content(s),
                     ),
                   ),
@@ -272,12 +273,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   Widget _content(GameSession s) {
     final (light, deep) = Palette.forSymmetry(s.target);
-    final pairPreview = ref.watch(settingsProvider.select((st) => st.pairPreview));
     return LayoutBuilder(builder: (context, c) {
+      if (isWideLandscape(Size(c.maxWidth, c.maxHeight))) return _wideContent(s, c, light, deep);
       // c 는 좌우 패딩(16 × 2)을 빼기 전 크기다.
       // 큰 판(7×7·9×9)은 타일이 너무 작아지지 않게 좌우 여백과 세로 비율을 조금 더 쓴다.
       final big = s.board.size > 5;
-      final boardSize = min(c.maxWidth - 32 - (big ? 0 : 8), c.maxHeight * (big ? 0.6 : 0.56)).clamp(220.0, 520.0);
+      final boardSize = min(c.maxWidth - 32 - (big ? 0 : 8), c.maxHeight * (big ? 0.6 : 0.56)).clamp(220.0, 640.0);
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
         child: Column(
@@ -286,64 +287,109 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             const SizedBox(height: 14),
             KeyedSubtree(key: _timerKey, child: const _LiveTimerBar()),
             const SizedBox(height: 14),
-            Row(
-              children: [
-                // 자리가 모자라면(콤보·피버 표시) 대칭 칩과 콤보 칩이 함께 조금씩 줄어든다.
-                Flexible(
-                  flex: 3,
-                  child: FittedBox(fit: BoxFit.scaleDown, child: SymmetryBadge(type: s.target)),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: _ComboChip(combo: s.combo, fever: s.isFever),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // 손해가 있는 버튼(패스 -3초, 새 퍼즐)은 엄지가 잘 닿지 않는 위쪽에 작게 둔다.
-                _corner(s),
-              ],
-            ),
+            _badgeRow(s),
             const Spacer(),
-            BoardView(
-              key: _boardKey,
-              board: s.board,
-              tileIds: s.tileIds,
-              target: s.target,
-              size: boardSize,
-              selected: s.selected,
-              // 짝 칸 표시는 클래식·오늘의 퍼즐에서만 (러시는 스스로 찾는 재미를 남긴다)
-              pairCell: pairPreview && s.mode != GameMode.rush && s.selected != null
-                  ? s.board.grid.partnerOf(s.target, s.selected!)
-                  : null,
-              hint: s.hint,
-              rotations: s.rotations,
-              enabled: s.canAct && !s.stuck,
-              dimmed: s.phase == Phase.over && !s.won,
-              hideTiles: s.phase == Phase.paused,
-              onTapCell: _ctrl.tapCell,
-              onSwap: _ctrl.swap,
-            ),
+            _board(s, boardSize),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(tr('남은 이동'), style: TextStyles.caption.copyWith(fontSize: 15)),
-                const SizedBox(width: 10),
-                Flexible(child: MovesPips(used: s.movesUsed, max: s.maxMoves, color: deep, light: light)),
-              ],
-            ),
+            _movesRow(s, light, deep),
             const Spacer(),
             _controls(s, light, deep),
           ],
         ),
       );
     });
+  }
+
+  /// 태블릿 가로: 왼쪽에 판을 크게, 오른쪽에 정보와 버튼을 세로로.
+  Widget _wideContent(GameSession s, BoxConstraints c, Color light, Color deep) {
+    const pad = 20.0, gap = 28.0;
+    final side = (c.maxWidth * 0.34).clamp(300.0, 400.0);
+    final boardSize = min(c.maxHeight - pad * 2, c.maxWidth - side - gap - pad * 2).clamp(240.0, 760.0);
+    return Padding(
+      padding: const EdgeInsets.all(pad),
+      child: Row(
+        children: [
+          Expanded(child: Center(child: _board(s, boardSize))),
+          const SizedBox(width: gap),
+          SizedBox(
+            width: side,
+            child: Column(
+              children: [
+                _topBar(s),
+                const SizedBox(height: 18),
+                KeyedSubtree(key: _timerKey, child: const _LiveTimerBar()),
+                const SizedBox(height: 18),
+                _badgeRow(s),
+                const Spacer(),
+                _movesRow(s, light, deep),
+                const SizedBox(height: 20),
+                _controls(s, light, deep),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _badgeRow(GameSession s) {
+    return Row(
+      children: [
+        // 자리가 모자라면(콤보·피버 표시) 대칭 칩과 콤보 칩이 함께 조금씩 줄어든다.
+        Flexible(
+          flex: 3,
+          child: FittedBox(fit: BoxFit.scaleDown, child: SymmetryBadge(type: s.target)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: _ComboChip(combo: s.combo, fever: s.isFever),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // 손해가 있는 버튼(패스 -3초, 새 퍼즐)은 엄지가 잘 닿지 않는 위쪽에 작게 둔다.
+        _corner(s),
+      ],
+    );
+  }
+
+  Widget _board(GameSession s, double size) {
+    final pairPreview = ref.watch(settingsProvider.select((st) => st.pairPreview));
+    return BoardView(
+      key: _boardKey,
+      board: s.board,
+      tileIds: s.tileIds,
+      target: s.target,
+      size: size,
+      selected: s.selected,
+      // 짝 칸 표시는 클래식·오늘의 퍼즐에서만 (러시는 스스로 찾는 재미를 남긴다)
+      pairCell: pairPreview && s.mode != GameMode.rush && s.selected != null
+          ? s.board.grid.partnerOf(s.target, s.selected!)
+          : null,
+      hint: s.hint,
+      rotations: s.rotations,
+      enabled: s.canAct && !s.stuck,
+      dimmed: s.phase == Phase.over && !s.won,
+      hideTiles: s.phase == Phase.paused,
+      onTapCell: _ctrl.tapCell,
+      onSwap: _ctrl.swap,
+    );
+  }
+
+  Widget _movesRow(GameSession s, Color light, Color deep) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(tr('남은 이동'), style: TextStyles.caption.copyWith(fontSize: 15)),
+        const SizedBox(width: 10),
+        Flexible(child: MovesPips(used: s.movesUsed, max: s.maxMoves, color: deep, light: light)),
+      ],
+    );
   }
 
   Widget _topBar(GameSession s) {

@@ -84,16 +84,8 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
         : streak > 0
             ? tr('{size}  |  {n}일 연속 도전 중', {'size': dailySize(now).label, 'n': streak})
             : tr('{size}  |  매일 새로운 한 판', {'size': dailySize(now).label});
-    return Scaffold(
-      body: PastelBackground(
-        child: SafeArea(
-          child: PhoneColumn(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-              child: LayoutBuilder(builder: (context, c) {
-                final demo = (c.maxHeight * 0.3).clamp(150.0, 250.0);
-                return Column(
-                  children: [
+    final wide = isWideOf(context);
+    final topRow = <Widget>[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -112,16 +104,12 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                         ),
                       ],
                     ),
-                    const Spacer(),
-                    const _Logo(),
-                    const SizedBox(height: 10),
-                    Text(tr('밀고, 돌리고, 대칭을 완성하세요!'),
-                            style: TextStyles.body.copyWith(color: Palette.inkSoft, fontSize: 17))
-                        .animate()
-                        .fadeIn(delay: 700.ms),
-                    const Spacer(),
-                    _DemoBoard(size: demo),
-                    const Spacer(),
+    ];
+    final tagline = Text(tr('밀고, 돌리고, 대칭을 완성하세요!'),
+            style: TextStyles.body.copyWith(color: Palette.inkSoft, fontSize: 17))
+        .animate()
+        .fadeIn(delay: 700.ms);
+    final buttons = <Widget>[
                     BubblyButton(
                       label: tr('러시 시작'),
                       subtitle: records.rushBestScore > 0
@@ -174,6 +162,60 @@ class _TitleScreenState extends ConsumerState<TitleScreen> {
                       fontSize: 20,
                       onPressed: _openDaily,
                     ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.5, curve: Curves.easeOutBack),
+    ];
+    return Scaffold(
+      body: PastelBackground(
+        child: SafeArea(
+          child: PhoneColumn(
+            maxWidth: contentMaxWidth(context),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+              child: LayoutBuilder(builder: (context, c) {
+                if (wide) {
+                  // 태블릿 가로: 왼쪽 로고·데모 판, 오른쪽 버튼
+                  final demo = (c.maxHeight * 0.42).clamp(160.0, 340.0);
+                  return Column(
+                    children: [
+                      ...topRow,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  const Spacer(),
+                                  const _Logo(),
+                                  const SizedBox(height: 10),
+                                  tagline,
+                                  const Spacer(),
+                                  _DemoBoard(size: demo),
+                                  const Spacer(),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 40),
+                            SizedBox(
+                              width: 380,
+                              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: buttons),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                final demo = (c.maxHeight * 0.3).clamp(150.0, 250.0);
+                return Column(
+                  children: [
+                    ...topRow,
+                    const Spacer(),
+                    const _Logo(),
+                    const SizedBox(height: 10),
+                    tagline,
+                    const Spacer(),
+                    _DemoBoard(size: demo),
+                    const Spacer(),
+                    ...buttons,
                   ],
                 );
               }),

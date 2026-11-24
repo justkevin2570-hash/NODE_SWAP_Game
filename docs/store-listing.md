@@ -2,7 +2,9 @@
 
 플레이 콘솔 **사용자 늘리기 → 스토어 등록정보 → 기본 스토어 등록정보**에 붙여 넣는다.
 영어는 같은 화면의 **번역 관리 → 번역 추가 → 영어(미국) en-US**에 넣는다.
-스크린샷: `release/store_screenshots/ko/`, `release/store_screenshots/en/` (1080×2160, 6장씩)
+스크린샷:
+- 휴대폰: `release/store_screenshots/ko/`, `en/` (1080×2160, 6장씩)
+- 태블릿(7인치·10인치 칸 둘 다): `release/store_screenshots/tablet_ko/`, `tablet_en/` (2560×1440 가로 16:9, 5장씩)
 
 ---
 
@@ -47,6 +49,7 @@ Google Play 게임즈 랭킹에서 이번 주 순위에 도전해 보세요.
 • 타일을 고르면 대칭 짝 칸을 보여 주는 짝 칸 표시
 • 막혀도 바로 실패하지 않는 되돌리기와 힌트
 • 파스텔 감성 화면과 직접 만든 오리지널 음악
+• 태블릿에서는 가로 화면으로 큰 판을 즐길 수 있어요
 • 광고 없음, 회원가입 없음
 
 모든 퍼즐은 컴퓨터로 끝까지 풀어 보고 확인한, 반드시 풀리는 퍼즐이에요.
@@ -55,6 +58,7 @@ Google Play 게임즈 랭킹에서 이번 주 순위에 도전해 보세요.
 **이번 버전의 새로운 기능** (500자 이내)
 ```
 <ko-KR>
+• 태블릿 가로 화면 지원
 • 영어 지원 (기기 언어에 따라 자동)
 • 스테이지: 탄 번호를 따라 난이도가 고르게 올라가요
 • 스테이지 화면 위에 지금 받을 수 있는 별 표시
@@ -108,6 +112,7 @@ like how point (x, y) becomes (y, x) when reflected across y = x.
 • Pair hint shows the mirror tile of the one you select
 • Undo and hints, so getting stuck is not the end
 • Soft pastel look and an original soundtrack
+• Play in landscape on tablets with a big board
 • No ads, no sign-up
 
 Every puzzle has been solved by computer, so each one is guaranteed to have a solution.
@@ -116,6 +121,7 @@ Every puzzle has been solved by computer, so each one is guaranteed to have a so
 **What's new** (max 500)
 ```
 <en-US>
+• Tablet landscape support
 • English language support
 • Stages now get harder steadily, stage by stage
 • See the stars you can still earn while playing
