@@ -17,7 +17,7 @@ Symmetry Rush - 대칭 퍼즐
 
 **간단한 설명** (80자 이내)
 ```
-타일을 바꾸고 판을 돌려 대칭을 완성하세요! 수학 시간의 대칭이동을 게임으로 익혀요.
+타일을 바꾸고 보드를 돌려 대칭 완성! 60초 러시, 300탄 스테이지, 매일 새로운 퍼즐까지
 ```
 
 **자세한 설명** (4000자 이내)
@@ -84,7 +84,7 @@ Symmetry Rush: Mirror Puzzle
 
 **Short description** (max 80)
 ```
-Swap tiles and rotate the board to make perfect symmetry. Learn reflections!
+Swap tiles, rotate, make it symmetric! 60s Rush, 300 stages and a daily puzzle.
 ```
 
 **Full description** (max 4000)
